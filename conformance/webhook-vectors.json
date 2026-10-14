@@ -1,0 +1,95 @@
+{
+  "description": "Webhook signature vectors. body_utf8 is the exact raw body; now is the verifier's clock in unix seconds. The API key here is fake.",
+  "api_key": "vbx_testkey0_abcdefghijklmnopqrstuvwxyz0123456789AB",
+  "signing_key": "7a7b8f323a1047de4237ea26ae674c0978958023e128c8e61269574ac69095d8",
+  "cases": [
+    {
+      "name": "valid",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950010,
+      "valid": true
+    },
+    {
+      "name": "valid at the tolerance edge (300 s)",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950300,
+      "valid": true
+    },
+    {
+      "name": "too old (301 s)",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950301,
+      "valid": false
+    },
+    {
+      "name": "from the future beyond tolerance",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791949699,
+      "valid": false
+    },
+    {
+      "name": "body changed by one byte",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-43\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950010,
+      "valid": false
+    },
+    {
+      "name": "timestamp changed",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950001",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950010,
+      "valid": false
+    },
+    {
+      "name": "no v1= prefix",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950010,
+      "valid": false
+    },
+    {
+      "name": "uppercase hex is not the signature",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=815203DBFC01F0062E558653B99085418ADFE74CEB13C6C2599ADC303A778E93",
+      "now": 1791950010,
+      "valid": false
+    },
+    {
+      "name": "timestamp not an integer",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "17919500x0",
+      "signature": "v1=815203dbfc01f0062e558653b99085418adfe74ceb13c6c2599adc303a778e93",
+      "now": 1791950010,
+      "valid": false
+    },
+    {
+      "name": "empty signature",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "",
+      "now": 1791950010,
+      "valid": false
+    },
+    {
+      "name": "signed with another key",
+      "body_utf8": "{\"job_id\":\"9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b\",\"status\":\"completed\",\"model\":\"verbex_jp_stt_x1\",\"language\":\"ja\",\"text\":\"こんにちは。\",\"segments\":[{\"index\":0,\"start_sec\":0.1,\"end_sec\":1.2,\"text\":\"こんにちは。\"}],\"failed_segment_count\":0,\"metadata\":{\"call_id\":\"c-42\"}}",
+      "timestamp": "1791950000",
+      "signature": "v1=604bac7dd7724775074d66cd8e5980234c70e7bc92885a80f8eda04b314debaa",
+      "now": 1791950010,
+      "valid": false
+    }
+  ]
+}

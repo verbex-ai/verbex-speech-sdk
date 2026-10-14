@@ -1,0 +1,153 @@
+{
+  "description": "A live transcription session as the server plays it. client: what the SDK sends (binary frames are described by length). server: frames in order; close ends the session.",
+  "normal": {
+    "query": {
+      "model": "verbex_jp_stt_x1",
+      "language": "ja",
+      "hotwords": [
+        "かいみょう"
+      ]
+    },
+    "script": [
+      {
+        "server": {
+          "type": "ready",
+          "session_id": "314ba9e8-d962-4a04-88b9-06bc53dd8036",
+          "model": "verbex_jp_stt_x1",
+          "language": "ja",
+          "hotwords": [
+            "かいみょう"
+          ]
+        }
+      },
+      {
+        "client": {
+          "binary_bytes": 3200
+        }
+      },
+      {
+        "client": {
+          "text": {
+            "type": "configure",
+            "hotwords": []
+          }
+        }
+      },
+      {
+        "server": {
+          "type": "configured",
+          "hotwords": []
+        }
+      },
+      {
+        "server": {
+          "type": "segment",
+          "index": 0,
+          "start_sec": 0.1,
+          "end_sec": 17.48,
+          "text": "おでんわありがとうございます。"
+        }
+      },
+      {
+        "client": {
+          "text": {
+            "type": "eof"
+          }
+        }
+      },
+      {
+        "server": {
+          "type": "segment",
+          "index": 1,
+          "start_sec": 17.48,
+          "end_sec": 19.68,
+          "text": "おりかえしごれんらくいたします。"
+        }
+      },
+      {
+        "server": {
+          "type": "done",
+          "total_segments": 2
+        }
+      },
+      {
+        "close": 1000
+      }
+    ]
+  },
+  "refused": {
+    "script": [
+      {
+        "server": {
+          "type": "error",
+          "code": "insufficient_credit",
+          "message": "Add credit to continue."
+        }
+      },
+      {
+        "close": 1008
+      }
+    ],
+    "expect": {
+      "error": "StreamError",
+      "code": "insufficient_credit",
+      "close_code": 1008,
+      "retryable": false
+    }
+  },
+  "failed_mid_session": {
+    "script": [
+      {
+        "server": {
+          "type": "ready",
+          "session_id": "s-2"
+        }
+      },
+      {
+        "server": {
+          "type": "segment",
+          "index": 0,
+          "start_sec": 0.0,
+          "end_sec": 1.0,
+          "text": "a"
+        }
+      },
+      {
+        "server": {
+          "type": "error",
+          "code": "stream_failed",
+          "message": "The transcription engine ended the session. Reconnect and resume sending audio."
+        }
+      },
+      {
+        "close": 1011
+      }
+    ],
+    "expect": {
+      "segments_before_error": 1,
+      "error": "StreamError",
+      "code": "stream_failed",
+      "close_code": 1011,
+      "retryable": true
+    }
+  },
+  "closed_without_done": {
+    "script": [
+      {
+        "server": {
+          "type": "ready",
+          "session_id": "s-3"
+        }
+      },
+      {
+        "close": 1006
+      }
+    ],
+    "expect": {
+      "error": "StreamError",
+      "code": "stream_closed",
+      "close_code": 1006,
+      "retryable": true
+    }
+  }
+}

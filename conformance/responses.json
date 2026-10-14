@@ -1,0 +1,145 @@
+{
+  "description": "Example 2xx responses as the API sends them. Each SDK parses every one into its types; extra_field must be ignored, absent optional fields are null/None/undefined.",
+  "models": {
+    "items": [
+      {
+        "model": "verbex_jp_stt_x1",
+        "display_name": "Verbex Japanese STT X1",
+        "language": "ja",
+        "modes": [
+          {
+            "mode": "async",
+            "features": [
+              {
+                "param_name": "hotwords",
+                "display_name": "Hotwords",
+                "type": "list",
+                "max_items": 20,
+                "description": null
+              }
+            ]
+          },
+          {
+            "mode": "stream",
+            "features": [
+              {
+                "param_name": "hotwords",
+                "display_name": "Hotwords",
+                "type": "list",
+                "max_items": 20,
+                "description": "Hiragana only."
+              }
+            ]
+          }
+        ],
+        "extra_field": "ignored"
+      }
+    ]
+  },
+  "voices": {
+    "items": [
+      {
+        "model": "verbex_v1_bn",
+        "model_display_name": "Verbex TTS v1 · Bengali",
+        "code": "maria_2",
+        "display_name": "Maria",
+        "language": "bn",
+        "gender": "female",
+        "style": "warm",
+        "sample_url": "https://cdn.example/maria.wav"
+      },
+      {
+        "model": "verbex_v1_ja",
+        "model_display_name": "Verbex TTS v1 · Japanese",
+        "code": "Aoi",
+        "display_name": null,
+        "language": "ja",
+        "gender": null,
+        "style": null,
+        "sample_url": null
+      }
+    ]
+  },
+  "receipt": {
+    "job_id": "9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b",
+    "status": "queued",
+    "queue_position": 1
+  },
+  "receipt_without_position": {
+    "job_id": "9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b",
+    "status": "queued"
+  },
+  "upload_started": {
+    "upload_id": "7f3c2a9e0b1d4c6f8a2e5b7d9c1f3a5e",
+    "upload_url": "https://storage.example/bucket/jobs/uploads/7f3c/audio?X-Goog-Signature=secret",
+    "method": "PUT",
+    "headers": {
+      "x-goog-if-generation-match": "0",
+      "x-goog-content-length-range": "2000000,2000000"
+    },
+    "upload_url_expires_in_seconds": 600,
+    "submit_window_seconds": 1800
+  },
+  "job_processing": {
+    "job_id": "9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b",
+    "status": "processing",
+    "model": "verbex_jp_stt_x1",
+    "language": "ja",
+    "progress": 0.4,
+    "segment_count": 2,
+    "failed_segment_count": 0,
+    "text": "おでんわ",
+    "segments": [
+      {
+        "index": 0,
+        "start_sec": 0.1,
+        "end_sec": 1.2,
+        "text": "おでんわ"
+      }
+    ],
+    "metadata": {}
+  },
+  "job_completed": {
+    "job_id": "9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b",
+    "status": "completed",
+    "model": "verbex_jp_stt_x1",
+    "language": "ja",
+    "audio_duration_sec": 19.2,
+    "progress": 1.0,
+    "segment_count": 2,
+    "failed_segment_count": 0,
+    "text": "おでんわありがとうございます。おりかえしごれんらくいたします。",
+    "segments": [
+      {
+        "index": 0,
+        "start_sec": 0.1,
+        "end_sec": 17.48,
+        "text": "おでんわありがとうございます。"
+      },
+      {
+        "index": 1,
+        "start_sec": 17.48,
+        "end_sec": 19.68,
+        "text": "おりかえしごれんらくいたします。"
+      }
+    ],
+    "metadata": {
+      "call_id": "c-42"
+    },
+    "extra_field": 1
+  },
+  "job_failed": {
+    "job_id": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+    "status": "failed",
+    "model": "verbex_jp_stt_x1",
+    "progress": 0.0,
+    "segment_count": 0,
+    "failed_segment_count": 0,
+    "segments": [],
+    "error": {
+      "code": "invalid_audio",
+      "message": "The audio could not be decoded."
+    },
+    "metadata": {}
+  }
+}

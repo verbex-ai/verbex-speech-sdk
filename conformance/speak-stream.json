@@ -1,0 +1,105 @@
+{
+  "description": "A speak socket. Text frames from the server name their kind in event. Binary frames are PCM.",
+  "script": [
+    {
+      "client": {
+        "text": {
+          "model": "verbex_v1_bn",
+          "voice": "maria_2",
+          "text": "one",
+          "request_id": "turn-1"
+        }
+      }
+    },
+    {
+      "server": {
+        "binary_bytes": 3200
+      }
+    },
+    {
+      "server": {
+        "binary_bytes": 3200
+      }
+    },
+    {
+      "server": {
+        "text": {
+          "event": "done",
+          "request_id": "turn-1",
+          "audio_seconds": 0.2
+        }
+      }
+    },
+    {
+      "client": {
+        "text": {
+          "model": "verbex_v1_bn",
+          "voice": "maria_2",
+          "text": "",
+          "request_id": "turn-2"
+        }
+      }
+    },
+    {
+      "server": {
+        "text": {
+          "event": "error",
+          "request_id": "turn-2",
+          "code": "validation_failed",
+          "message": "One or more fields are invalid.",
+          "fields": [
+            {
+              "name": "text",
+              "reason": "is required"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client": {
+        "text": {
+          "model": "verbex_v1_bn",
+          "voice": "maria_2",
+          "text": "three",
+          "request_id": "turn-3"
+        }
+      }
+    },
+    {
+      "server": {
+        "binary_bytes": 1600
+      }
+    },
+    {
+      "server": {
+        "text": {
+          "event": "done",
+          "request_id": "turn-3",
+          "audio_seconds": 0.05
+        }
+      }
+    }
+  ],
+  "expect": {
+    "turn-1": {
+      "audio_bytes": 6400,
+      "audio_seconds": 0.2
+    },
+    "turn-2": {
+      "error": "SpeakError",
+      "code": "validation_failed",
+      "fields": [
+        {
+          "name": "text",
+          "reason": "is required"
+        }
+      ],
+      "session_open": true
+    },
+    "turn-3": {
+      "audio_bytes": 1600,
+      "audio_seconds": 0.05
+    }
+  }
+}

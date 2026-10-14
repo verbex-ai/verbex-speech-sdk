@@ -1,0 +1,60 @@
+# Secrets and local credentials: API keys belong in the environment, never in the repository.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+.npmrc
+.pypirc
+settings.xml
+auth*.json
+secrets/
+
+# Test audio and output written by the examples
+*.wav
+*.mp3
+*.pcm
+!conformance/**
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editors and operating systems
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Java
+java/target/
+.gradle/
+build/
+
+# Node.js
+node/node_modules/
+node/dist/
+node/coverage/
+*.tgz
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+python/dist/
+python/build/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/

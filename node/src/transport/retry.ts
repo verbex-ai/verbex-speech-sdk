@@ -1,0 +1,36 @@
+/**
+ * Retry rules (spec §8). Pure functions, so the decision table can be tested on its own.
+ */
+
+/** The kinds of call that have their own retry rule. */
+export type RetryCall = "get" | "upload_start" | "speak" | "submit";
+
+/** What a failed attempt produced: an HTTP status, or no response at all. */
+export type Outcome = number | "connection_error" | "timeout";
+
+const RATE_CODES = new Set(["rate_limited", "workspace_rate_limited"]);
+/** 503 codes that say the submission created nothing. */
+const SUBMIT_SAFE_503 = new Set(["engine_busy", "service_unavailable", "credit_unavailable", "catalogue_unavailable"]);
+
+export const BACKOFF_BASE_MS = 500;
+export const BACKOFF_CAP_MS = 8_000;
+export const RETRY_AFTER_CAP_SEC = 60;
+
+/** Whether an attempt with this outcome is retried automatically. */
+export function shouldRetry(call: RetryCall, outcome: Outcome, code?: string): boolean {
+  if (call === "submit") {
+    // Only answers that say nothing was created: submitting twice creates two jobs.
+    if (outcome === 429) return code !== undefined && RATE_CODES.has(code);
+    if (outcome === 503) return code !== undefined && SUBMIT_SAFE_503.has(code);
+    return false;
+  }
+  if (outcome === "connection_error" || outcome === "timeout") return true;
+  if (outcome === 429) return code !== undefined && RATE_CODES.has(code);
+  return outcome === 502 || outcome === 503 || outcome === 504;
+}
+
+/** Full-jitter exponential backoff: uniform in [0, min(cap, base * 2^attempt)). `attempt` starts at 0. */
+export function backoffDelayMs(attempt: number, random: () => number = Math.random): number {
+  const ceiling = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** Math.min(attempt, 30));
+  return Math.floor(ceiling * random());
+}

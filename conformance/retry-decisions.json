@@ -1,0 +1,323 @@
+{
+  "description": "Whether a failed call is retried automatically (spec §8). call: get | upload_start | speak | submit. outcome: an HTTP status with code, or connection_error / timeout.",
+  "cases": [
+    {
+      "call": "get",
+      "outcome": "connection_error",
+      "code": null,
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": "timeout",
+      "code": null,
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": 429,
+      "code": "rate_limited",
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": 429,
+      "code": "workspace_rate_limited",
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": 429,
+      "code": "concurrency_limit",
+      "retry": false
+    },
+    {
+      "call": "get",
+      "outcome": 502,
+      "code": "upstream_unavailable",
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": 503,
+      "code": "service_unavailable",
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": 504,
+      "code": "upstream_timeout",
+      "retry": true
+    },
+    {
+      "call": "get",
+      "outcome": 400,
+      "code": "validation_failed",
+      "retry": false
+    },
+    {
+      "call": "get",
+      "outcome": 401,
+      "code": "unauthenticated",
+      "retry": false
+    },
+    {
+      "call": "get",
+      "outcome": 402,
+      "code": "insufficient_credit",
+      "retry": false
+    },
+    {
+      "call": "get",
+      "outcome": 404,
+      "code": "job_not_found",
+      "retry": false
+    },
+    {
+      "call": "get",
+      "outcome": 500,
+      "code": "internal_error",
+      "retry": false
+    },
+    {
+      "call": "upload_start",
+      "outcome": "connection_error",
+      "code": null,
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": "timeout",
+      "code": null,
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": 429,
+      "code": "rate_limited",
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": 429,
+      "code": "workspace_rate_limited",
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": 429,
+      "code": "concurrency_limit",
+      "retry": false
+    },
+    {
+      "call": "upload_start",
+      "outcome": 502,
+      "code": "upstream_unavailable",
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": 503,
+      "code": "service_unavailable",
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": 504,
+      "code": "upstream_timeout",
+      "retry": true
+    },
+    {
+      "call": "upload_start",
+      "outcome": 400,
+      "code": "validation_failed",
+      "retry": false
+    },
+    {
+      "call": "upload_start",
+      "outcome": 401,
+      "code": "unauthenticated",
+      "retry": false
+    },
+    {
+      "call": "upload_start",
+      "outcome": 402,
+      "code": "insufficient_credit",
+      "retry": false
+    },
+    {
+      "call": "upload_start",
+      "outcome": 404,
+      "code": "job_not_found",
+      "retry": false
+    },
+    {
+      "call": "upload_start",
+      "outcome": 500,
+      "code": "internal_error",
+      "retry": false
+    },
+    {
+      "call": "speak",
+      "outcome": "connection_error",
+      "code": null,
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": "timeout",
+      "code": null,
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 429,
+      "code": "rate_limited",
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 429,
+      "code": "workspace_rate_limited",
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 429,
+      "code": "concurrency_limit",
+      "retry": false
+    },
+    {
+      "call": "speak",
+      "outcome": 502,
+      "code": "upstream_unavailable",
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 503,
+      "code": "service_unavailable",
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 504,
+      "code": "upstream_timeout",
+      "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 400,
+      "code": "validation_failed",
+      "retry": false
+    },
+    {
+      "call": "speak",
+      "outcome": 401,
+      "code": "unauthenticated",
+      "retry": false
+    },
+    {
+      "call": "speak",
+      "outcome": 402,
+      "code": "insufficient_credit",
+      "retry": false
+    },
+    {
+      "call": "speak",
+      "outcome": 404,
+      "code": "job_not_found",
+      "retry": false
+    },
+    {
+      "call": "speak",
+      "outcome": 500,
+      "code": "internal_error",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": "connection_error",
+      "code": null,
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": "timeout",
+      "code": null,
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 429,
+      "code": "rate_limited",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 429,
+      "code": "workspace_rate_limited",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 429,
+      "code": "concurrency_limit",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 502,
+      "code": "upstream_unavailable",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 503,
+      "code": "engine_busy",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 503,
+      "code": "service_unavailable",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 503,
+      "code": "credit_unavailable",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 503,
+      "code": "catalogue_unavailable",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 503,
+      "code": "engine_unavailable",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 504,
+      "code": "upstream_timeout",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 400,
+      "code": "validation_failed",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 402,
+      "code": "insufficient_credit",
+      "retry": false
+    }
+  ]
+}
