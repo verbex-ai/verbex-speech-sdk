@@ -54,11 +54,12 @@ def test_retries_stop_at_max_retries(make_client):
     assert len(recorder.requests) == 3
 
 
-def test_a_submit_is_never_retried_on_504(make_client):
+def test_a_submit_is_retried_on_504_with_its_key_until_the_retries_run_out(make_client):
     client, recorder = make_client(lambda request: httpx.Response(504, content=body("upstream_timeout")))
     with pytest.raises(ServerError):
         client.listen.submit(b"RIFF" + bytes(100), model="m", language="ja")
-    assert len(recorder.requests) == 1
+    assert len(recorder.requests) == 3
+    assert len({r.headers["idempotency-key"] for r in recorder.requests}) == 1
 
 
 def test_a_submit_is_retried_on_engine_busy(make_client):
@@ -69,13 +70,14 @@ def test_a_submit_is_retried_on_engine_busy(make_client):
     assert len(recorder.requests) == 2
 
 
-def test_a_submit_is_never_retried_after_a_connection_error(make_client):
+def test_a_submit_is_retried_after_a_connection_error_with_its_key(make_client):
     def fail(request):
         raise httpx.ReadError("reset")
     client, recorder = make_client(fail)
     with pytest.raises(APIConnectionError):
         client.listen.submit(b"RIFF" + bytes(100), model="m", language="ja")
-    assert len(recorder.requests) == 1
+    assert len(recorder.requests) == 3
+    assert len({r.headers["idempotency-key"] for r in recorder.requests}) == 1
 
 
 def test_concurrency_limit_is_not_retried(make_client):

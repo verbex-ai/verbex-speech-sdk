@@ -55,7 +55,7 @@ final class Errors {
     static ApiException create(int status, String code, String message, String requestId,
                                List<FieldError> fields, Long retryAfter) {
         switch (status) {
-            case 400, 405, 406, 409, 413, 415:
+            case 400, 405, 406, 409, 413, 415, 422:
                 return new BadRequestException(status, code, message, requestId, fields, retryAfter);
             case 401:
                 return new AuthenticationException(status, code, message, requestId, fields, retryAfter);

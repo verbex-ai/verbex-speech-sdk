@@ -1,5 +1,5 @@
 {
-  "description": "Whether a failed call is retried automatically (spec §8). call: get | upload_start | speak | submit. outcome: an HTTP status with code, or connection_error / timeout.",
+  "description": "Whether a failed call is retried automatically (spec §8). call: get | upload_start | speak | submit. outcome: an HTTP status with code, or connection_error / timeout. A submit always carries its Idempotency-Key, so it is retried as a read is, and on 409 request_in_progress.",
   "cases": [
     {
       "call": "get",
@@ -239,13 +239,13 @@
       "call": "submit",
       "outcome": "connection_error",
       "code": null,
-      "retry": false
+      "retry": true
     },
     {
       "call": "submit",
       "outcome": "timeout",
       "code": null,
-      "retry": false
+      "retry": true
     },
     {
       "call": "submit",
@@ -269,7 +269,7 @@
       "call": "submit",
       "outcome": 502,
       "code": "upstream_unavailable",
-      "retry": false
+      "retry": true
     },
     {
       "call": "submit",
@@ -299,13 +299,13 @@
       "call": "submit",
       "outcome": 503,
       "code": "engine_unavailable",
-      "retry": false
+      "retry": true
     },
     {
       "call": "submit",
       "outcome": 504,
       "code": "upstream_timeout",
-      "retry": false
+      "retry": true
     },
     {
       "call": "submit",
@@ -317,6 +317,30 @@
       "call": "submit",
       "outcome": 402,
       "code": "insufficient_credit",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 409,
+      "code": "request_in_progress",
+      "retry": true
+    },
+    {
+      "call": "submit",
+      "outcome": 409,
+      "code": "upload_incomplete",
+      "retry": false
+    },
+    {
+      "call": "submit",
+      "outcome": 422,
+      "code": "idempotency_key_reused",
+      "retry": false
+    },
+    {
+      "call": "get",
+      "outcome": 409,
+      "code": "request_in_progress",
       "retry": false
     }
   ]

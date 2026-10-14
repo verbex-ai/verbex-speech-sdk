@@ -11,10 +11,11 @@ from .retry import backoff, should_retry
 
 
 def _build(http: Any, config: c.Config, trace_id: str, method: str, path: str, params: Optional[List[Any]],
-           json: Any, data: Optional[Dict[str, Any]], files: Any, timeout: Optional[float]) -> httpx.Request:
+           json: Any, data: Optional[Dict[str, Any]], files: Any, timeout: Optional[float],
+           headers: Optional[Dict[str, str]] = None) -> httpx.Request:
     return http.build_request(
         method, config.base_url + path, params=params, json=json, data=data, files=files,
-        headers=c.api_headers(config, trace_id),
+        headers={**c.api_headers(config, trace_id), **(headers or {})},
         timeout=httpx.Timeout(timeout or config.timeout, connect=c.CONNECT_TIMEOUT))
 
 
@@ -31,15 +32,16 @@ def _retry_wait(config: c.Config, call: str, attempt: int, error: Exception) -> 
 def request(http: httpx.Client, config: c.Config, sleep: Callable[[float], Any], call: str, method: str,
             path: str, *, params: Optional[List[Any]] = None, json: Any = None,
             data: Optional[Dict[str, Any]] = None, files: Any = None, timeout: Optional[float] = None,
-            stream: bool = False) -> httpx.Response:
-    """``call`` is ``get``, ``upload_start``, ``speak`` or ``submit``: it decides what is retried."""
+            stream: bool = False, headers: Optional[Dict[str, str]] = None) -> httpx.Response:
+    """``call`` is ``get``, ``upload_start``, ``speak`` or ``submit``: it decides what is retried.
+    ``headers`` go with every attempt, as sent the first time."""
     trace_id = c.new_trace_id()
     attempt = 0
     while True:
         error: Exception
         try:
-            response = http.send(_build(http, config, trace_id, method, path, params, json, data, files, timeout),
-                                 stream=stream)
+            response = http.send(_build(http, config, trace_id, method, path, params, json, data, files, timeout,
+                                        headers), stream=stream)
         except httpx.TimeoutException:
             error = APITimeoutError(f"No answer from the API to {method} {path} in time.")
         except httpx.TransportError as exc:
@@ -60,7 +62,7 @@ def request(http: httpx.Client, config: c.Config, sleep: Callable[[float], Any],
 async def request_async(http: httpx.AsyncClient, config: c.Config, sleep: Callable[[float], Awaitable[Any]],
                         call: str, method: str, path: str, *, params: Optional[List[Any]] = None, json: Any = None,
                         data: Optional[Dict[str, Any]] = None, files: Any = None, timeout: Optional[float] = None,
-                        stream: bool = False) -> httpx.Response:
+                        stream: bool = False, headers: Optional[Dict[str, str]] = None) -> httpx.Response:
     """The awaited twin of :func:`request`."""
     trace_id = c.new_trace_id()
     attempt = 0
@@ -68,7 +70,8 @@ async def request_async(http: httpx.AsyncClient, config: c.Config, sleep: Callab
         error: Exception
         try:
             response = await http.send(
-                _build(http, config, trace_id, method, path, params, json, data, files, timeout), stream=stream)
+                _build(http, config, trace_id, method, path, params, json, data, files, timeout, headers),
+                stream=stream)
         except httpx.TimeoutException:
             error = APITimeoutError(f"No answer from the API to {method} {path} in time.")
         except httpx.TransportError as exc:

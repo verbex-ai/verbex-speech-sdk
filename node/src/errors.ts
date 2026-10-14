@@ -26,7 +26,14 @@ export class ConfigurationError extends VerbexError {}
  * 100 MiB, a stream without a size), or a call the session's state does not allow
  * (`send` after `finish`, a second `say` while one is in progress).
  */
-export class ValidationError extends VerbexError {}
+export class ValidationError extends VerbexError {
+  /** The API's code for the same refusal: `validation_failed`, or `audio_too_large` for a file over 100 MiB. */
+  readonly code: string;
+  constructor(message: string, code = "validation_failed") {
+    super(message);
+    this.code = code;
+  }
+}
 
 export interface ApiErrorInit {
   status: number;

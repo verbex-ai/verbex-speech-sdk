@@ -17,7 +17,7 @@ import {
 type ApiErrorClass = new (init: ApiErrorInit) => ApiError;
 
 function classForStatus(status: number): ApiErrorClass {
-  if ([400, 405, 406, 409, 413, 415].includes(status)) return BadRequestError;
+  if ([400, 405, 406, 409, 413, 415, 422].includes(status)) return BadRequestError;
   if (status === 401) return AuthenticationError;
   if (status === 402) return PaymentRequiredError;
   if (status === 403) return PermissionDeniedError;

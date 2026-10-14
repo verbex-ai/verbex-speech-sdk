@@ -49,10 +49,11 @@ class VerbexSpeech:
 
     def _request(self, call: str, method: str, path: str, *, params: Optional[List[Any]] = None,
                  json: Any = None, data: Optional[Dict[str, Any]] = None, files: Any = None,
-                 timeout: Optional[float] = None, stream: bool = False) -> httpx.Response:
+                 timeout: Optional[float] = None, stream: bool = False,
+                 headers: Optional[Dict[str, str]] = None) -> httpx.Response:
         # self._sleep is read per call so tests (and callers) can replace it.
         return http.request(self._http, self._config, self._sleep, call, method, path, params=params, json=json,
-                            data=data, files=files, timeout=timeout, stream=stream)
+                            data=data, files=files, timeout=timeout, stream=stream, headers=headers)
 
 
 class AsyncVerbexSpeech:
@@ -91,6 +92,8 @@ class AsyncVerbexSpeech:
 
     async def _request(self, call: str, method: str, path: str, *, params: Optional[List[Any]] = None,
                        json: Any = None, data: Optional[Dict[str, Any]] = None, files: Any = None,
-                       timeout: Optional[float] = None, stream: bool = False) -> httpx.Response:
+                       timeout: Optional[float] = None, stream: bool = False,
+                       headers: Optional[Dict[str, str]] = None) -> httpx.Response:
         return await http.request_async(self._http, self._config, self._sleep, call, method, path, params=params,
-                                        json=json, data=data, files=files, timeout=timeout, stream=stream)
+                                        json=json, data=data, files=files, timeout=timeout, stream=stream,
+                                        headers=headers)

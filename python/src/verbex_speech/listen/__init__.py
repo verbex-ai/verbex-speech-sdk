@@ -34,11 +34,14 @@ class Listen:
     def submit(self, source: Any = None, *, model: str, language: str, url: Optional[str] = None,
                size: Optional[int] = None, filename: Optional[str] = None, hotwords: Optional[List[str]] = None,
                metadata: Optional[Mapping[str, Any]] = None, webhook_url: Optional[str] = None,
-               tags: Optional[List[str]] = None) -> SubmitReceipt:
-        """Queues a file for transcription. Up to 1 MiB goes in the request, larger through storage."""
+               tags: Optional[List[str]] = None, idempotency_key: Optional[str] = None) -> SubmitReceipt:
+        """Queues a file for transcription. Up to 1 MiB goes in the request, larger through storage.
+
+        Sent with an Idempotency-Key, the same for each retry: ``idempotency_key`` if given, else a new UUID.
+        """
         return jobs.submit(self._client, source, model=model, language=language, url=url, size=size,
                            filename=filename, hotwords=hotwords, metadata=metadata, webhook_url=webhook_url,
-                           tags=tags)
+                           tags=tags, idempotency_key=idempotency_key)
 
     def start_upload(self, size: int, filename: Optional[str] = None) -> UploadStarted:
         """Step 1 of the upload flow, for callers that put the file themselves."""
@@ -81,11 +84,15 @@ class AsyncListen:
     async def submit(self, source: Any = None, *, model: str, language: str, url: Optional[str] = None,
                      size: Optional[int] = None, filename: Optional[str] = None,
                      hotwords: Optional[List[str]] = None, metadata: Optional[Mapping[str, Any]] = None,
-                     webhook_url: Optional[str] = None, tags: Optional[List[str]] = None) -> SubmitReceipt:
-        """Queues a file for transcription. Up to 1 MiB goes in the request, larger through storage."""
+                     webhook_url: Optional[str] = None, tags: Optional[List[str]] = None,
+                     idempotency_key: Optional[str] = None) -> SubmitReceipt:
+        """Queues a file for transcription. Up to 1 MiB goes in the request, larger through storage.
+
+        Sent with an Idempotency-Key, the same for each retry: ``idempotency_key`` if given, else a new UUID.
+        """
         return await jobs.submit_async(self._client, source, model=model, language=language, url=url, size=size,
                                        filename=filename, hotwords=hotwords, metadata=metadata,
-                                       webhook_url=webhook_url, tags=tags)
+                                       webhook_url=webhook_url, tags=tags, idempotency_key=idempotency_key)
 
     async def start_upload(self, size: int, filename: Optional[str] = None) -> UploadStarted:
         """Step 1 of the upload flow, for callers that put the file themselves."""

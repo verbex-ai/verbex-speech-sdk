@@ -24,14 +24,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static ai.verbex.speech.sdk.FakeApi.error;
 import static ai.verbex.speech.sdk.FakeApi.json;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -285,33 +289,128 @@ class TranscribeTest {
     }
 
     @Test
-    void submitIsRetriedOnlyWhenNothingWasCreated() {
-        api.on("POST", "/v1/listen", error(503, "engine_busy", Map.of()), FakeApi.respond(202, Map.of(), RECEIPT));
+    void submitIsRetriedLikeAGetWithTheSameBodyAndKey() {
+        api.on("POST", "/v1/listen", error(503, "engine_busy", Map.of()), error(502, "upstream_unavailable", Map.of()),
+                FakeApi.respond(202, Map.of(), RECEIPT));
         client().listen().submit(TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja").build());
-        assertEquals(2, api.requests.size());
+        assertEquals(3, api.requests.size());
         assertArrayEquals(api.requests.get(0).body(), api.requests.get(1).body(), "the same body is sent again");
-
-        api.requests.clear();
-        api.on("POST", "/v1/listen/x", FakeApi.json(200, "{}"));
-        try (FakeApi other = new FakeApi()) {
-            other.on("POST", "/v1/listen", error(502, "upstream_unavailable", Map.of()));
-            VerbexSpeech c = TestClients.builder(other.baseUrl(), time).build();
-            assertThrows(ServerException.class, () -> c.listen().submit(
-                    TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja").build()));
-            assertEquals(1, other.requests.size());
-        }
+        assertArrayEquals(api.requests.get(0).body(), api.requests.get(2).body(), "the same body is sent again");
+        String key = api.requests.get(0).header("Idempotency-Key");
+        assertNotNull(key);
+        assertEquals(key, api.requests.get(1).header("Idempotency-Key"));
+        assertEquals(key, api.requests.get(2).header("Idempotency-Key"));
     }
 
     @Test
-    void submitIsNotRetriedOnAConnectionError() throws Exception {
+    void submitIsRetriedOnAConnectionError() throws Exception {
         int port;
         try (ServerSocket s = new ServerSocket(0)) {
             port = s.getLocalPort();
         }
-        VerbexSpeech c = TestClients.builder("http://127.0.0.1:" + port, time).build();
+        VerbexSpeech c = TestClients.builder("http://127.0.0.1:" + port, time).maxRetries(2).build();
         assertThrows(ApiConnectionException.class, () -> c.listen().submit(
                 TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja").build()));
-        assertTrue(time.sleeps.isEmpty());
+        assertEquals(2, time.sleeps.size(), "two retries after the first attempt");
+    }
+
+    @Test
+    void everySubmitSendsAFreshUuidIdempotencyKey() {
+        int size = MIB + 1;
+        api.on("POST", "/v1/listen/uploads", FakeApi.respond(201, Map.of(), uploadStarted(size)));
+        api.on("PUT", "/storage/up1", FakeApi.respond(200, Map.of(), ""));
+        api.on("POST", "/v1/listen", FakeApi.respond(202, Map.of(), RECEIPT));
+        client().listen().submit(TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja").build());
+        client().listen().submit(TranscribeRequest.builder().url("https://storage.example/a.wav").model(MODEL)
+                .language("ja").build());
+        client().listen().submit(TranscribeRequest.builder().bytes(audio(size)).model(MODEL).language("ja").build());
+
+        List<FakeApi.Recorded> submits = api.requests("POST", "/v1/listen");
+        assertEquals(3, submits.size());
+        assertTrue(submits.get(0).header("Content-Type").startsWith("multipart/form-data"));
+        assertTrue(Json.tree(submits.get(1).body()).has("url"));
+        assertTrue(Json.tree(submits.get(2).body()).has("upload_id"));
+        Set<String> keys = new HashSet<>();
+        for (FakeApi.Recorded r : submits) {
+            String key = r.header("Idempotency-Key");
+            assertNotNull(key, "every submit carries a key");
+            assertEquals(key, UUID.fromString(key).toString(), "a UUID");
+            keys.add(key);
+        }
+        assertEquals(3, keys.size(), "one key per submit call");
+        assertFalse(api.requests("POST", "/v1/listen/uploads").get(0).hasHeader("Idempotency-Key"));
+        assertFalse(api.requests("PUT", "/storage/up1").get(0).hasHeader("Idempotency-Key"));
+    }
+
+    @Test
+    void theUploadFlowKeepsItsKeyThroughUploadIncompleteAndRequestInProgress() {
+        int size = MIB + 1;
+        api.on("POST", "/v1/listen/uploads", FakeApi.respond(201, Map.of(), uploadStarted(size)));
+        api.on("PUT", "/storage/up1", FakeApi.respond(200, Map.of(), ""));
+        api.on("POST", "/v1/listen", error(409, "upload_incomplete", Map.of()),
+                error(409, "request_in_progress", Map.of()), FakeApi.respond(202, Map.of(), RECEIPT));
+        client().listen().submit(TranscribeRequest.builder().bytes(audio(size)).model(MODEL).language("ja").build());
+        List<FakeApi.Recorded> submits = api.requests("POST", "/v1/listen");
+        assertEquals(3, submits.size());
+        String key = submits.get(0).header("Idempotency-Key");
+        assertNotNull(key);
+        for (FakeApi.Recorded r : submits) {
+            assertEquals(key, r.header("Idempotency-Key"));
+        }
+    }
+
+    @Test
+    void requestInProgressIsRetriedForAUrlSubmit() {
+        api.on("POST", "/v1/listen", error(409, "request_in_progress", Map.of()), FakeApi.respond(202, Map.of(), RECEIPT));
+        Receipt r = client().listen().submit(TranscribeRequest.builder().url("https://storage.example/a.wav")
+                .model(MODEL).language("ja").idempotencyKey("order-77").build());
+        assertEquals("queued", r.status());
+        assertEquals(2, api.requests.size());
+        assertEquals("order-77", api.requests.get(0).header("Idempotency-Key"));
+        assertEquals("order-77", api.requests.get(1).header("Idempotency-Key"));
+    }
+
+    @Test
+    void theCallersKeyIsSentVerbatim() {
+        api.on("POST", "/v1/listen", FakeApi.respond(202, Map.of(), RECEIPT));
+        String key = "job:2026-10-14/batch#7~!" + "x".repeat(231);
+        assertEquals(255, key.length());
+        client().listen().submit(TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja")
+                .idempotencyKey(key).build());
+        assertEquals(key, api.requests.get(0).header("Idempotency-Key"));
+    }
+
+    @Test
+    void aBadCallerKeyIsRefusedBeforeAnythingIsSent() {
+        api.on("POST", "/v1/listen", FakeApi.respond(202, Map.of(), RECEIPT));
+        for (String bad : List.of("", "a b", "tab\tkey", "caf\u00e9", "x".repeat(256), "line\n")) {
+            assertThrows(IllegalArgumentException.class, () -> client().listen().submit(TranscribeRequest.builder()
+                    .bytes(audio(10)).model(MODEL).language("ja").idempotencyKey(bad).build()), bad);
+        }
+        assertTrue(api.requests.isEmpty());
+    }
+
+    @Test
+    void replayedIsReadFromTheIdempotentReplayedHeader() {
+        api.on("POST", "/v1/listen", FakeApi.respond(202, Map.of("Idempotent-Replayed", "TRUE"), RECEIPT),
+                FakeApi.respond(202, Map.of("Idempotent-Replayed", "false"), RECEIPT),
+                FakeApi.respond(202, Map.of(), RECEIPT));
+        TranscribeRequest req = TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja").build();
+        assertTrue(client().listen().submit(req).replayed());
+        assertFalse(client().listen().submit(req).replayed());
+        Receipt plain = client().listen().submit(req);
+        assertFalse(plain.replayed());
+        assertEquals(new Receipt("9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b", "queued", 1), plain);
+    }
+
+    @Test
+    void aReusedKeyIsABadRequestAndNotRetried() {
+        api.on("POST", "/v1/listen", error(422, "idempotency_key_reused", Map.of()));
+        BadRequestException e = assertThrows(BadRequestException.class, () -> client().listen().submit(
+                TranscribeRequest.builder().bytes(audio(10)).model(MODEL).language("ja").idempotencyKey("k1").build()));
+        assertEquals(422, e.status());
+        assertEquals("idempotency_key_reused", e.code());
+        assertEquals(1, api.requests.size());
     }
 
     @Test

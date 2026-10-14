@@ -79,8 +79,11 @@ One call for a file, whatever its size:
 | `metadata` | JSON object | Optional, at most 4096 bytes serialised (checked by the API) |
 | `webhook_url` | string | Optional |
 | `tags` | list of strings | Optional, sent as repeated `tag` query parameters |
+| `idempotency_key` | string | Optional, 1 to 255 visible ASCII characters; made by the SDK when not given (below) |
 
-- `submit(...)` returns the receipt: `job_id`, `status`, `queue_position` (optional).
+- `submit(...)` returns the receipt: `job_id`, `status`, `queue_position` (optional), and `replayed`
+  (true when the response carried `Idempotent-Replayed: true`: the job was made by an earlier
+  request with the same key, and nothing was submitted now).
 - `transcribe(...)` = `submit(...)` then `wait(job_id)`; returns the finished job (§4.4).
 
 How the audio goes:
@@ -93,6 +96,15 @@ How the audio goes:
 | `url` | — | `POST /v1/listen`, JSON: `url`, `model`, `language`, `hotwords` (array), `metadata` (object), `webhook_url` |
 
 Submitting is given 330 s (the gateway's limit), not the client's default timeout.
+
+Every submit sends `Idempotency-Key`: the caller's `idempotency_key`, else a random UUID (v4) the
+SDK makes once per `submit`/`transcribe` call. The same key goes with every retry of that call,
+including the upload flow's step 3, so a retry after a lost answer gets the first request's receipt
+instead of making a second job. The API keeps a key's receipt for 24 hours, per workspace. A caller
+who may submit again from another process (after a restart) passes its own key, saved with the work.
+The API answers the same key with a different request `422 idempotency_key_reused`, and the same key
+while the first request still runs `409 request_in_progress` (retried, §8). A key the SDK would send
+that is not 1 to 255 visible ASCII characters is refused locally (`ValidationError`).
 
 ### 4.3 The upload flow
 
@@ -219,7 +231,7 @@ One base type, `VerbexError`, with these subtypes:
 |---|---|
 | `ConfigurationError` | Missing/invalid API key or base URL at construction |
 | `ApiError` (base of the next six) | An HTTP error response. Carries `status`, `code`, `message`, `request_id` (from the body, else `X-Trace-Id`), `fields` (list of `{name, reason}`), `retry_after` (seconds, from `Retry-After`) |
-| `BadRequestError` | 400, 405, 406, 409, 413, 415 |
+| `BadRequestError` | 400, 405, 406, 409, 413, 415, 422 |
 | `AuthenticationError` | 401 |
 | `PaymentRequiredError` | 402 |
 | `PermissionDeniedError` | 403 |
@@ -253,7 +265,7 @@ longer wait is not taken, the error is raised).
 | `GET` (models, voices, job) | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
 | `POST /v1/listen/uploads` | same as `GET` (an unused upload expires on its own) |
 | `POST /v1/speak` | same as `GET`, only before any audio has been received (status arrives with the first audio, and nothing is billed without audio) |
-| `POST /v1/listen` (submit) | **only** 429 `rate_limited`/`workspace_rate_limited` and 503 `engine_busy`/`service_unavailable`/`credit_unavailable`/`catalogue_unavailable` — answers that say nothing was created. Never on a timeout, any connection error (an HTTP client cannot always tell a failure before sending from one after), 502 or 504: a job may exist, and submitting twice creates two jobs |
+| `POST /v1/listen` (submit) | same as `GET`, and 409 `request_in_progress`. Safe because every submit carries its `Idempotency-Key` (§4.2): a retry after a lost answer gets the first request's receipt, never a second job |
 | storage `PUT` | never |
 | WebSocket handshakes | never (the caller reconnects; `StreamError.retryable` says when it makes sense) |
 

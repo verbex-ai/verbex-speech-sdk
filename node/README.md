@@ -90,6 +90,28 @@ while polling waits `Retry-After` and carries on. Finished jobs are kept 10 minu
 
 `client.listen.get(jobId)` reads a job once.
 
+### Submitting safely more than once
+
+Every submit sends an `Idempotency-Key` header. By default it is a random UUID made once per
+`submit` or `transcribe` call and reused by every automatic retry of that call (including the
+upload flow's final submit), so a retry after a lost answer gets the first request's receipt
+instead of a second job. The API keeps a key's receipt for 24 hours, per workspace.
+
+If your process may submit the same work again after a restart, pass your own key and save it
+with the work:
+
+```js
+const receipt = await client.listen.submit({ source: "meeting.wav", model, language, idempotencyKey: "order-42-meeting" });
+if (receipt.replayed) console.log("already submitted as", receipt.jobId);
+```
+
+- `idempotencyKey` must be 1 to 255 visible ASCII characters (no spaces); anything else throws
+  `ValidationError` (`code` `validation_failed`) before anything is sent.
+- `receipt.replayed` is `true` when the API answered `Idempotent-Replayed: true`: the job was made
+  by an earlier request with the same key, and nothing new was submitted.
+- The same key with a different request is refused with `BadRequestError` (422,
+  `idempotency_key_reused`). Use a new key for each new piece of work.
+
 ### Webhooks
 
 ```js
@@ -191,9 +213,9 @@ Every error is a `VerbexError`.
 | Type | When |
 |---|---|
 | `ConfigurationError` | Missing or invalid key or base URL |
-| `ValidationError` | Refused locally, nothing sent (file over 100 MiB, stream without `size`, `send` after `finish`, overlapping `say`) |
+| `ValidationError` | Refused locally, nothing sent (file over 100 MiB, stream without `size`, a bad `idempotencyKey`, `send` after `finish`, overlapping `say`). `code` is `validation_failed`, or `audio_too_large` for a file over 100 MiB |
 | `ApiError` | An HTTP error: `status`, `code`, `message`, `requestId`, `fields`, `retryAfter` |
-| `BadRequestError` | 400, 405, 406, 409, 413, 415 |
+| `BadRequestError` | 400, 405, 406, 409, 413, 415, 422 |
 | `AuthenticationError` | 401 |
 | `PaymentRequiredError` | 402 |
 | `PermissionDeniedError` | 403 |
@@ -231,7 +253,7 @@ wait is not taken and the error is thrown.
 |---|---|
 | models, voices, job reads, upload start | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
 | `speak.synthesize` | the same, only before any audio has arrived |
-| submit (`POST /v1/listen`) | only 429 `rate_limited`/`workspace_rate_limited` and 503 `engine_busy`/`service_unavailable`/`credit_unavailable`/`catalogue_unavailable`. Never on a timeout, a connection error, 502 or 504: a job may exist, and submitting twice creates two jobs |
+| submit (`POST /v1/listen`) | the same as reads, and 409 `request_in_progress` (the first request with this key is still running). Safe because every attempt carries the same `Idempotency-Key`: a retry after a lost answer gets the first receipt, never a second job. 422 `idempotency_key_reused` is not retried |
 | submit after an upload | also 409 `upload_incomplete`, 1 s apart |
 | storage PUT, WebSocket handshakes | never |
 

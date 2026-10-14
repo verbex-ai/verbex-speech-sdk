@@ -49,7 +49,7 @@ class APIError(VerbexError):
 
 
 class BadRequestError(APIError):
-    """400, 405, 406, 409, 413, 415: the request must change before it can succeed."""
+    """400, 405, 406, 409, 413, 415, 422: the request must change before it can succeed."""
 
 
 class AuthenticationError(APIError):

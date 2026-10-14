@@ -82,6 +82,7 @@ public class ErrorMappingTest {
     void otherStatusesMapByClass() {
         assertInstanceOf(BadRequestException.class, Errors.fromResponse(405, n -> null, new byte[0]));
         assertInstanceOf(BadRequestException.class, Errors.fromResponse(415, n -> null, new byte[0]));
+        assertInstanceOf(BadRequestException.class, Errors.fromResponse(422, n -> null, new byte[0]));
         assertInstanceOf(ServerException.class, Errors.fromResponse(500, n -> null, new byte[0]));
         assertSame(ApiException.class, Errors.fromResponse(418, n -> null, new byte[0]).getClass());
         assertEquals("http_418", Errors.fromResponse(418, n -> null, "{}".getBytes()).code());

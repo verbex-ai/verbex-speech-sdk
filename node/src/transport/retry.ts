@@ -9,8 +9,6 @@ export type RetryCall = "get" | "upload_start" | "speak" | "submit";
 export type Outcome = number | "connection_error" | "timeout";
 
 const RATE_CODES = new Set(["rate_limited", "workspace_rate_limited"]);
-/** 503 codes that say the submission created nothing. */
-const SUBMIT_SAFE_503 = new Set(["engine_busy", "service_unavailable", "credit_unavailable", "catalogue_unavailable"]);
 
 export const BACKOFF_BASE_MS = 500;
 export const BACKOFF_CAP_MS = 8_000;
@@ -18,12 +16,9 @@ export const RETRY_AFTER_CAP_SEC = 60;
 
 /** Whether an attempt with this outcome is retried automatically. */
 export function shouldRetry(call: RetryCall, outcome: Outcome, code?: string): boolean {
-  if (call === "submit") {
-    // Only answers that say nothing was created: submitting twice creates two jobs.
-    if (outcome === 429) return code !== undefined && RATE_CODES.has(code);
-    if (outcome === 503) return code !== undefined && SUBMIT_SAFE_503.has(code);
-    return false;
-  }
+  // A submit carries its Idempotency-Key, so a retry gets the first request's receipt; a
+  // 409 request_in_progress means that first request is still running.
+  if (call === "submit" && outcome === 409) return code === "request_in_progress";
   if (outcome === "connection_error" || outcome === "timeout") return true;
   if (outcome === 429) return code !== undefined && RATE_CODES.has(code);
   return outcome === 502 || outcome === 503 || outcome === 504;

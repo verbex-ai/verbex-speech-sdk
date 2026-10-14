@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -43,16 +44,21 @@ public final class Jobs {
     /**
      * Submits one file and returns the receipt (spec §4.2). Up to 1 MiB the audio goes in the
      * request; up to 100 MiB through the upload flow (§4.3); a URL is sent as JSON.
+     * <p>
+     * Every submit sends an {@code Idempotency-Key}: the request's own, else a random UUID made once
+     * for this call. Every retry of the call, including the upload flow's final submit, sends the same
+     * key, so a retry after a lost answer returns the first request's receipt instead of a second job.
      *
      * @throws IllegalArgumentException for audio over 100 MiB (nothing is sent)
      * @throws UploadException          when the storage PUT fails (never retried)
      */
     public Receipt submit(TranscribeRequest request) {
         String path = "/v1/listen" + HttpTransport.queryString(HttpTransport.tagQuery(request.tags()));
+        String key = request.idempotencyKey() != null ? request.idempotencyKey() : UUID.randomUUID().toString();
         if (request.isUrl()) {
             Map<String, Object> body = jsonBody(request);
             body.put("url", request.url());
-            return submitJson(path, body, request.traceId());
+            return submitJson(path, body, request.traceId(), key);
         }
         long size = request.size();
         if (size > TranscribeRequest.UPLOAD_MAX_BYTES) {
@@ -60,7 +66,7 @@ public final class Jobs {
                     + TranscribeRequest.UPLOAD_MAX_BYTES + " bytes (100 MiB) can be transcribed.");
         }
         if (size <= TranscribeRequest.DIRECT_MAX_BYTES) {
-            return submitMultipart(path, request);
+            return submitMultipart(path, request, key);
         }
         UploadStarted upload = startUpload(size, request.filename());
         putToStorage(upload, request, size);
@@ -68,7 +74,7 @@ public final class Jobs {
         body.put("upload_id", upload.uploadId());
         for (int attempt = 0; ; attempt++) {
             try {
-                return submitJson(path, body, request.traceId());
+                return submitJson(path, body, request.traceId(), key);
             } catch (BadRequestException e) {
                 if (e.status() != 409 || !"upload_incomplete".equals(e.code()) || attempt >= transport.maxRetries()) {
                     throw e;
@@ -93,7 +99,7 @@ public final class Jobs {
         return transcribe(TranscribeRequest.builder().file(file).model(model).language(language).build());
     }
 
-    private Receipt submitMultipart(String path, TranscribeRequest r) {
+    private Receipt submitMultipart(String path, TranscribeRequest r, String key) {
         Multipart form = new Multipart().file("file", r.filename(), r.readAll())
                 .field("model", r.model()).field("language", r.language());
         for (String h : r.hotwords()) {
@@ -105,18 +111,24 @@ public final class Jobs {
         if (r.webhookUrl() != null) {
             form.field("webhook_url", r.webhookUrl());
         }
-        byte[] body = form.build();
-        String contentType = form.contentType();
-        byte[] answer = transport.send(CallKind.SUBMIT, r.traceId(),
-                trace -> transport.request(path, trace, SUBMIT_TIMEOUT).header("Content-Type", contentType)
-                        .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build(),
-                HttpResponse.BodyHandlers.ofByteArray()).body();
-        return Json.read(answer, Receipt.class);
+        return post(path, r.traceId(), key, form.contentType(), form.build());
     }
 
-    private Receipt submitJson(String path, Map<String, Object> body, String traceId) {
-        return Json.read(transport.postJson(CallKind.SUBMIT, path, Json.write(body), SUBMIT_TIMEOUT, traceId),
-                Receipt.class);
+    private Receipt submitJson(String path, Map<String, Object> body, String traceId, String key) {
+        return post(path, traceId, key, "application/json", Json.write(body));
+    }
+
+    /** One submit with retries; each attempt gets a fresh publisher over the same bytes and the same key. */
+    private Receipt post(String path, String traceId, String key, String contentType, byte[] body) {
+        HttpResponse<byte[]> response = transport.send(CallKind.SUBMIT, traceId,
+                trace -> transport.request(path, trace, SUBMIT_TIMEOUT).header("Content-Type", contentType)
+                        .header("Idempotency-Key", key)
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        Receipt r = Json.read(response.body(), Receipt.class);
+        boolean replayed = response.headers().firstValue("Idempotent-Replayed")
+                .map(v -> v.trim().equalsIgnoreCase("true")).orElse(false);
+        return new Receipt(r.jobId(), r.status(), r.queuePosition(), replayed);
     }
 
     private static Map<String, Object> jsonBody(TranscribeRequest r) {

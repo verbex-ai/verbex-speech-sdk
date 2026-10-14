@@ -117,6 +117,24 @@ job = client.listen.get(receipt.job_id)           # or client.listen.wait(receip
 
 A finished job is kept for 10 minutes.
 
+### Submitting safely more than once
+
+Every submit carries an `Idempotency-Key` header, so a submit whose answer was lost (a timeout, a
+dropped connection) is retried without making a second job: the API answers the retry with the
+first request's receipt, and `receipt.replayed` is `True`. The SDK makes a new key for each
+`submit` or `transcribe` call and reuses it for that call's retries.
+
+If your process may submit the same work again after a restart, pass your own key, saved with the
+work, so the API recognises it for up to 24 hours:
+
+```python
+receipt = client.listen.submit("call.wav", model="verbex_jp_stt_x1", language="ja",
+                               idempotency_key=f"call-{call_id}")
+```
+
+A key is 1 to 255 visible ASCII characters. Reusing a key for a different request raises
+`BadRequestError` with code `idempotency_key_reused` (422).
+
 ### Verify a webhook
 
 ```python
@@ -204,7 +222,7 @@ Every error is a `VerbexError`.
 |---|---|
 | `ConfigurationError` | No or malformed API key or base URL |
 | `ValidationError` (also a `ValueError`) | Refused before sending: over 100 MiB, no size for a stream, a bad format |
-| `BadRequestError` | 400, 405, 406, 409, 413, 415 |
+| `BadRequestError` | 400, 405, 406, 409, 413, 415, 422 |
 | `AuthenticationError` | 401 |
 | `PaymentRequiredError` | 402: no plan, not enough credit, an overdue invoice |
 | `PermissionDeniedError` | 403: the key lacks the permission |
@@ -225,10 +243,9 @@ and `fields` for `validation_failed`.
 Up to `max_retries` (default 2) automatic retries with exponential backoff, honouring
 `Retry-After` up to 60 seconds:
 
-- reads, upload starts and speech: on connection errors, timeouts, 429 rate limits, 502, 503, 504;
-- a submit: only on answers that say no job was created (429 rate limits; 503 `engine_busy`,
-  `service_unavailable`, `credit_unavailable`, `catalogue_unavailable`). Never after a timeout or a
-  lost connection, because submitting twice would create two jobs;
+- reads, upload starts, speech and submits: on connection errors, timeouts, 429 rate limits, 502,
+  503, 504. A submit is safe to retry because it carries its idempotency key (above); it is also
+  retried on `409 request_in_progress`, while the first request with its key still runs;
 - the storage upload and WebSocket handshakes: never.
 
 `429 concurrency_limit` is not retried: wait for some of your own running work to finish.

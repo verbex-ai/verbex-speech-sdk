@@ -118,9 +118,10 @@ TranscribeRequest request = TranscribeRequest.builder()
         .metadata(Map.of("call_id", "c-42"))
         .webhookUrl("https://example.com/stt/done")
         .tags(List.of("campaign-7"))
+        .idempotencyKey("call-c-42")        // optional; default: a random UUID per submit call
         .build();
 
-Receipt receipt = client.listen().submit(request);            // job_id, status, queue_position
+Receipt receipt = client.listen().submit(request);            // job_id, status, queue_position, replayed
 Job job = client.listen().waitFor(receipt.jobId(), Duration.ofSeconds(2), Duration.ofMinutes(10));
 ```
 
@@ -134,6 +135,19 @@ How the audio goes, by size:
 | `url(...)` | `POST /v1/listen` as JSON |
 
 Submitting is given 330 s (the gateway's limit) rather than the client timeout.
+
+Every submit sends an `Idempotency-Key` header: yours from `idempotencyKey(...)`, else a random UUID
+the SDK makes once per `submit`/`transcribe` call. Every retry of that call sends the same key,
+including the final submit of the upload flow, so a retry after a lost answer gets the first
+request's receipt instead of creating a second job. The API keeps a key's receipt for 24 hours, per
+workspace. If you may submit the same work again from another process (after a restart, say), pass
+your own key and save it with the work. A key must be 1 to 255 visible ASCII characters; anything
+else is refused by `build()` with `IllegalArgumentException`, before anything is sent.
+
+`receipt.replayed()` is true when the API answered with `Idempotent-Replayed: true`: the job was made
+by an earlier request with the same key, and nothing new was submitted. Sending the same key with a
+different request is answered `422 idempotency_key_reused` (a `BadRequestException`, not retried):
+use a new key for each new piece of work.
 
 The upload `PUT` sends the whole file with exactly the headers the API returned and none of the
 SDK's own: no `Authorization`, no `X-Trace-Id`. `java.net.http` does not let a caller set
@@ -264,7 +278,7 @@ All errors are unchecked and extend `VerbexException`. The spec's names map to t
 | `VerbexError` | `VerbexException` | Base type |
 | `ConfigurationError` | `ConfigurationException` | Missing or invalid key or base URL at `build()` |
 | `ApiError` | `ApiException` | An HTTP error: `status()`, `code()`, `apiMessage()`, `requestId()`, `fields()`, `retryAfter()` |
-| `BadRequestError` | `BadRequestException` | 400, 405, 406, 409, 413, 415 |
+| `BadRequestError` | `BadRequestException` | 400, 405, 406, 409, 413, 415, 422 |
 | `AuthenticationError` | `AuthenticationException` | 401 |
 | `PaymentRequiredError` | `PaymentRequiredException` | 402 |
 | `PermissionDeniedError` | `PermissionDeniedException` | 403 |
@@ -283,7 +297,7 @@ Other statuses produce a plain `ApiException`. A body that is not the API's JSON
 page) still gives the right type by status, with code `http_<status>`. `requestId()` is the body's
 `error.request_id`, else the response's `X-Trace-Id`: quote it to support.
 
-Mistakes in the call itself (missing model, two sources, audio over 100 MiB, a `say` while another
+Mistakes in the call itself (missing model, two sources, audio over 100 MiB, a bad idempotency key, a `say` while another
 runs, `send` after `finish`) are `IllegalArgumentException` or `IllegalStateException`.
 
 ## Retries
@@ -296,7 +310,7 @@ and the error is thrown.
 |---|---|
 | `models`, `voices`, `get`, starting an upload | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
 | `synthesize`, `synthesizeStream` | as above, only before any audio has arrived |
-| `submit` (and `transcribe`) | only 429 `rate_limited`/`workspace_rate_limited` and 503 `engine_busy`/`service_unavailable`/`credit_unavailable`/`catalogue_unavailable`. Never a timeout, connection error, 502 or 504: a job may exist, and submitting twice creates two jobs |
+| `submit` (and `transcribe`) | as for reads, and 409 `request_in_progress` (the first request with the same key is still running). Safe because every attempt carries the same `Idempotency-Key`: a retry after a lost answer gets the first receipt, never a second job. 422 `idempotency_key_reused` is not retried |
 | storage `PUT` | never |
 | WebSocket handshakes | never; reconnect yourself when `StreamException.retryable()` says so |
 

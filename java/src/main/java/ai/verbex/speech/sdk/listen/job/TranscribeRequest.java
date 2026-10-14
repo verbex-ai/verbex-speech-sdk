@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * One file to transcribe (spec §4.2): exactly one source ({@link Builder#file}, {@link Builder#bytes},
@@ -21,6 +22,8 @@ public final class TranscribeRequest {
     public static final long DIRECT_MAX_BYTES = 1_048_576L;
     /** Files up to this size are sent by the upload flow; larger ones are refused locally. */
     public static final long UPLOAD_MAX_BYTES = 104_857_600L;
+
+    private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[\\x21-\\x7E]{1,255}");
 
     private final Path file;
     private final byte[] bytes;
@@ -35,6 +38,7 @@ public final class TranscribeRequest {
     private final String webhookUrl;
     private final List<String> tags;
     private final String traceId;
+    private final String idempotencyKey;
 
     private TranscribeRequest(Builder b) {
         this.file = b.file;
@@ -49,6 +53,7 @@ public final class TranscribeRequest {
         this.webhookUrl = b.webhookUrl;
         this.tags = b.tags == null ? List.of() : List.copyOf(b.tags);
         this.traceId = b.traceId;
+        this.idempotencyKey = b.idempotencyKey;
         String name = b.filename;
         if (name == null && file != null && file.getFileName() != null) {
             name = file.getFileName().toString();
@@ -94,6 +99,11 @@ public final class TranscribeRequest {
 
     String traceId() {
         return traceId;
+    }
+
+    /** The caller's key, or {@code null} when the SDK makes one per submit. */
+    String idempotencyKey() {
+        return idempotencyKey;
     }
 
     boolean isUrl() {
@@ -173,6 +183,7 @@ public final class TranscribeRequest {
         private String webhookUrl;
         private List<String> tags;
         private String traceId;
+        private String idempotencyKey;
 
         private Builder() {
         }
@@ -249,7 +260,21 @@ public final class TranscribeRequest {
             return this;
         }
 
-        /** @throws IllegalArgumentException unless exactly one source, a model and a language are given */
+        /**
+         * Your own {@code Idempotency-Key} for the submit: 1 to 255 visible ASCII characters. Without
+         * one, the SDK makes a random UUID per submit call. Pass your own (saved with the work) when
+         * you may submit the same file again from another process, for example after a restart: the
+         * API answers a repeated key with the first request's receipt for 24 hours.
+         */
+        public Builder idempotencyKey(String idempotencyKey) {
+            this.idempotencyKey = idempotencyKey;
+            return this;
+        }
+
+        /**
+         * @throws IllegalArgumentException unless exactly one source, a model and a language are
+         *                                  given, and any idempotency key is 1 to 255 visible ASCII characters
+         */
         public TranscribeRequest build() {
             int sources = (file != null ? 1 : 0) + (bytes != null ? 1 : 0) + (stream != null ? 1 : 0)
                     + (url != null ? 1 : 0);
@@ -264,6 +289,9 @@ public final class TranscribeRequest {
             }
             if (language == null || language.isBlank()) {
                 throw new IllegalArgumentException("language is required");
+            }
+            if (idempotencyKey != null && !IDEMPOTENCY_KEY.matcher(idempotencyKey).matches()) {
+                throw new IllegalArgumentException("idempotencyKey must be 1 to 255 visible ASCII characters");
             }
             return new TranscribeRequest(this);
         }

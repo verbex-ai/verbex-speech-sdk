@@ -61,7 +61,7 @@ describe("response parsing (conformance/responses.json)", () => {
   it("receipt", async () => {
     next = { status: 202, body: r.receipt };
     const receipt = await client().listen.submit({ source: Buffer.from("RIFF"), model: "m", language: "ja" });
-    expect(receipt).toEqual({ jobId: "9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b", status: "queued", queuePosition: 1 });
+    expect(receipt).toEqual({ jobId: "9f1c2f7a6b5e4d0f8a3c1b2d4e5f6a7b", status: "queued", queuePosition: 1, replayed: false });
   });
 
   it("receipt without position", async () => {

@@ -3,8 +3,9 @@
  * Response types follow spec §6: camelCase fields mapped from the API's snake_case, unknown
  * fields ignored, fields the API may leave out `undefined`, documented nullable fields `null`.
  */
+import { randomUUID } from "node:crypto";
 import { BadRequestError, RateLimitError, ValidationError, VerbexError } from "../errors.js";
-import type { HttpClient, RequestOptions } from "../transport/http.js";
+import type { HttpClient, RequestOptions, RequestSpec } from "../transport/http.js";
 import { arr, num, obj, optNum, optStr, str } from "../transport/json.js";
 import { DIRECT_MAX_BYTES, UPLOAD_MAX_BYTES, resolveSource, type AudioSource } from "./source.js";
 import { parseUploadStarted, putUpload } from "./upload.js";
@@ -17,6 +18,11 @@ export interface Receipt {
   jobId: string;
   status: JobStatus;
   queuePosition?: number;
+  /**
+   * True when the API answered `Idempotent-Replayed: true`: the job was made by an earlier
+   * request with the same idempotency key, and nothing was submitted now.
+   */
+  replayed: boolean;
 }
 
 export interface Segment {
@@ -59,9 +65,10 @@ export class WaitTimeoutError extends VerbexError {
   }
 }
 
-export function parseReceipt(body: unknown): Receipt {
+export function parseReceipt(body: unknown, headers?: { get(name: string): string | null }): Receipt {
   const r = obj(body);
-  const receipt: Receipt = { jobId: str(r.job_id), status: str(r.status) as JobStatus };
+  const replayed = (headers?.get("idempotent-replayed") ?? "").trim().toLowerCase() === "true";
+  const receipt: Receipt = { jobId: str(r.job_id), status: str(r.status) as JobStatus, replayed };
   const pos = optNum(r.queue_position);
   if (pos !== undefined) receipt.queuePosition = pos;
   return receipt;
@@ -121,6 +128,12 @@ export interface SubmitParams extends RequestOptions {
   webhookUrl?: string;
   /** Sent as repeated `tag` query parameters. */
   tags?: string[];
+  /**
+   * Sent as `Idempotency-Key`, 1 to 255 visible ASCII characters. Default: a random UUID made
+   * once per `submit`/`transcribe` call and reused by every retry of it. Pass your own (saved
+   * with the work) to submit again safely from another process; the API keeps it 24 hours.
+   */
+  idempotencyKey?: string;
 }
 
 export interface WaitOptions {
@@ -137,6 +150,7 @@ export interface TranscribeParams extends SubmitParams {
 }
 
 const JOB_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+const IDEMPOTENCY_KEY_RE = /^[\x21-\x7E]{1,255}$/;
 
 /** Internal: the job calls behind `client.listen`. */
 export class Jobs {
@@ -157,26 +171,22 @@ export class Jobs {
     const hasSource = params.source !== undefined && params.source !== null;
     const hasUrl = params.url !== undefined && params.url !== null;
     if (hasSource === hasUrl) throw new ValidationError("Give exactly one of `source` and `url`.");
+    const idempotencyKey = params.idempotencyKey ?? randomUUID();
+    if (typeof idempotencyKey !== "string" || !IDEMPOTENCY_KEY_RE.test(idempotencyKey)) {
+      throw new ValidationError("The idempotency key must be 1 to 255 visible ASCII characters.");
+    }
+    // One key for every attempt of this call, so a retry gets the first request's receipt.
+    const headers = { "Idempotency-Key": idempotencyKey };
     const query = (params.tags ?? []).map((t): [string, string] => ["tag", t]);
     const timeoutMs = params.timeoutMs ?? Math.max(SUBMIT_TIMEOUT_MS, this.#http.config.timeoutMs);
 
     if (hasUrl) {
-      return parseReceipt(
-        await this.#http.requestJson({
-          method: "POST",
-          path: "/v1/listen",
-          query,
-          json: jsonOptions(params, { url: params.url }),
-          call: "submit",
-          timeoutMs,
-          traceId: params.traceId,
-        }),
-      );
+      return this.#postSubmit({ query, json: jsonOptions(params, { url: params.url }), timeoutMs, traceId: params.traceId, headers });
     }
 
     const src = await resolveSource(params.source!, params.size, params.filename);
     if (src.size > UPLOAD_MAX_BYTES) {
-      throw new ValidationError(`The file is ${src.size} bytes; the largest accepted is ${UPLOAD_MAX_BYTES} bytes (100 MiB).`);
+      throw new ValidationError(`The file is ${src.size} bytes; the largest accepted is ${UPLOAD_MAX_BYTES} bytes (100 MiB).`, "audio_too_large");
     }
 
     if (src.size <= DIRECT_MAX_BYTES) {
@@ -191,9 +201,7 @@ export class Jobs {
         if (params.webhookUrl !== undefined) f.append("webhook_url", params.webhookUrl);
         return f;
       };
-      return parseReceipt(
-        await this.#http.requestJson({ method: "POST", path: "/v1/listen", query, form, call: "submit", timeoutMs, traceId: params.traceId }),
-      );
+      return this.#postSubmit({ query, form, timeoutMs, traceId: params.traceId, headers });
     }
 
     // The upload flow (spec §4.3).
@@ -211,23 +219,19 @@ export class Jobs {
 
     for (let attempt = 0; ; attempt++) {
       try {
-        return parseReceipt(
-          await this.#http.requestJson({
-            method: "POST",
-            path: "/v1/listen",
-            query,
-            json: jsonOptions(params, { upload_id: started.uploadId }),
-            call: "submit",
-            timeoutMs,
-            traceId: params.traceId,
-          }),
-        );
+        return await this.#postSubmit({ query, json: jsonOptions(params, { upload_id: started.uploadId }), timeoutMs, traceId: params.traceId, headers });
       } catch (err) {
         const incomplete = err instanceof BadRequestError && err.status === 409 && err.code === "upload_incomplete";
         if (!incomplete || attempt >= this.#http.config.maxRetries) throw err;
         await this.#http.config.sleep(UPLOAD_INCOMPLETE_RETRY_MS);
       }
     }
+  }
+
+  /** `POST /v1/listen`, retried per spec §8 with the same headers (the idempotency key) each time. */
+  async #postSubmit(spec: Pick<RequestSpec, "query" | "json" | "form" | "timeoutMs" | "traceId" | "headers">): Promise<Receipt> {
+    const { body, headers } = await this.#http.requestJsonWithHeaders({ method: "POST", path: "/v1/listen", call: "submit", ...spec });
+    return parseReceipt(body, headers);
   }
 
   /** `submit` then `wait`: returns the finished job (completed, failed or cancelled). */

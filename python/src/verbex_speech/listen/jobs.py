@@ -1,6 +1,8 @@
 """File transcription jobs: submit (in the request or through the upload flow), get, wait, transcribe."""
 from __future__ import annotations
 
+import re
+import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Iterable, List, Mapping, Optional
 
@@ -15,17 +17,31 @@ if TYPE_CHECKING:
 FINISHED = frozenset({"completed", "failed", "cancelled"})
 
 
+IDEMPOTENCY_HEADER = "Idempotency-Key"
+_IDEMPOTENCY_KEY = re.compile(r"[\x21-\x7e]{1,255}")
+
+
 @dataclass(frozen=True)
 class SubmitReceipt:
-    """The answer to a submit: the job to poll."""
+    """The answer to a submit: the job to poll.
+
+    ``replayed`` is true when the job was made by an earlier request with the same idempotency key,
+    and nothing was submitted now.
+    """
 
     job_id: str
     status: str
     queue_position: Optional[int] = None
+    replayed: bool = False
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "SubmitReceipt":
-        return cls(d.get("job_id", ""), d.get("status", ""), d.get("queue_position"))
+    def from_dict(cls, d: Mapping[str, Any], replayed: bool = False) -> "SubmitReceipt":
+        return cls(d.get("job_id", ""), d.get("status", ""), d.get("queue_position"), replayed)
+
+    @classmethod
+    def from_response(cls, response: httpx.Response) -> "SubmitReceipt":
+        replayed = response.headers.get("Idempotent-Replayed", "").strip().lower() == "true"
+        return cls.from_dict(response.json(), replayed)
 
 
 @dataclass(frozen=True)
@@ -124,10 +140,19 @@ class WaitTimeoutError(VerbexError):
 # Shared by both clients.
 
 def _check_submit(source: Any, url: Optional[str], model: str, language: str, hotwords: Optional[List[str]],
-                  metadata: Optional[Mapping[str, Any]], webhook_url: Optional[str]) -> None:
+                  metadata: Optional[Mapping[str, Any]], webhook_url: Optional[str],
+                  idempotency_key: Optional[str]) -> Dict[str, str]:
+    """The submit's checks, and the Idempotency-Key header it sends with every attempt."""
     if (source is None) == (url is None):
         raise c.local_error("Pass exactly one of source and url.", "source")
     c.submit_options(model, language, hotwords, metadata, webhook_url)
+    if idempotency_key is None:
+        # One key per submit call, the same for each of its retries.
+        return {IDEMPOTENCY_HEADER: str(uuid.uuid4())}
+    if not isinstance(idempotency_key, str) or not _IDEMPOTENCY_KEY.fullmatch(idempotency_key):
+        raise c.local_error("idempotency_key must be 1 to 255 visible ASCII characters, without spaces.",
+                            "idempotency_key")
+    return {IDEMPOTENCY_HEADER: idempotency_key}
 
 
 def _direct_files(audio: c.Audio) -> Dict[str, Any]:
@@ -157,24 +182,24 @@ def _put_refused(status: int) -> UploadError:
 def submit(client: "VerbexSpeech", source: Any = None, *, model: str, language: str, url: Optional[str] = None,
            size: Optional[int] = None, filename: Optional[str] = None, hotwords: Optional[List[str]] = None,
            metadata: Optional[Mapping[str, Any]] = None, webhook_url: Optional[str] = None,
-           tags: Optional[List[str]] = None) -> SubmitReceipt:
+           tags: Optional[List[str]] = None, idempotency_key: Optional[str] = None) -> SubmitReceipt:
     """Queues a file for transcription. Up to 1 MiB goes in the request, larger through storage."""
-    _check_submit(source, url, model, language, hotwords, metadata, webhook_url)
+    headers = _check_submit(source, url, model, language, hotwords, metadata, webhook_url, idempotency_key)
     params = c.tag_params(tags)
     if url is not None:
         body = c.json_submit({"url": url}, model, language, hotwords, metadata, webhook_url)
-        return submit_json(client, body, params)
+        return submit_json(client, body, params, headers)
     audio = c.open_audio(source, size, filename)
     if audio.size <= c.DIRECT_MAX_BYTES:
         response = client._request(
             "submit", "POST", "/v1/listen", params=params,
             data=c.multipart_form(model, language, hotwords, metadata, webhook_url),
-            files=_direct_files(audio), timeout=c.SUBMIT_TIMEOUT)
-        return SubmitReceipt.from_dict(response.json())
+            files=_direct_files(audio), timeout=c.SUBMIT_TIMEOUT, headers=headers)
+        return SubmitReceipt.from_response(response)
     started = start_upload(client, audio.size, audio.filename)
     put_upload(client, started, audio)
     body = c.json_submit({"upload_id": started.upload_id}, model, language, hotwords, metadata, webhook_url)
-    return submit_json(client, body, params)
+    return submit_json(client, body, params, headers)
 
 
 def start_upload(client: "VerbexSpeech", size: int, filename: Optional[str] = None) -> UploadStarted:
@@ -196,13 +221,14 @@ def put_upload(client: "VerbexSpeech", started: UploadStarted, audio: c.Audio) -
         raise _put_refused(response.status_code)
 
 
-def submit_json(client: "VerbexSpeech", body: Dict[str, Any], params: List[Any]) -> SubmitReceipt:
+def submit_json(client: "VerbexSpeech", body: Dict[str, Any], params: List[Any],
+                headers: Dict[str, str]) -> SubmitReceipt:
     attempt = 0
     while True:
         try:
             response = client._request("submit", "POST", "/v1/listen", params=params, json=body,
-                                       timeout=c.SUBMIT_TIMEOUT)
-            return SubmitReceipt.from_dict(response.json())
+                                       timeout=c.SUBMIT_TIMEOUT, headers=headers)
+            return SubmitReceipt.from_response(response)
         except BadRequestError as error:
             # The file is still arriving at storage: submitting again is what the API asks for.
             if error.code != "upload_incomplete" or attempt >= client._config.max_retries:
@@ -240,23 +266,24 @@ def transcribe(client: "VerbexSpeech", source: Any = None, *, model: str, langua
 async def submit_async(client: "AsyncVerbexSpeech", source: Any = None, *, model: str, language: str,
                        url: Optional[str] = None, size: Optional[int] = None, filename: Optional[str] = None,
                        hotwords: Optional[List[str]] = None, metadata: Optional[Mapping[str, Any]] = None,
-                       webhook_url: Optional[str] = None, tags: Optional[List[str]] = None) -> SubmitReceipt:
-    _check_submit(source, url, model, language, hotwords, metadata, webhook_url)
+                       webhook_url: Optional[str] = None, tags: Optional[List[str]] = None,
+                       idempotency_key: Optional[str] = None) -> SubmitReceipt:
+    headers = _check_submit(source, url, model, language, hotwords, metadata, webhook_url, idempotency_key)
     params = c.tag_params(tags)
     if url is not None:
         body = c.json_submit({"url": url}, model, language, hotwords, metadata, webhook_url)
-        return await submit_json_async(client, body, params)
+        return await submit_json_async(client, body, params, headers)
     audio = c.open_audio(source, size, filename)
     if audio.size <= c.DIRECT_MAX_BYTES:
         response = await client._request(
             "submit", "POST", "/v1/listen", params=params,
             data=c.multipart_form(model, language, hotwords, metadata, webhook_url),
-            files=_direct_files(audio), timeout=c.SUBMIT_TIMEOUT)
-        return SubmitReceipt.from_dict(response.json())
+            files=_direct_files(audio), timeout=c.SUBMIT_TIMEOUT, headers=headers)
+        return SubmitReceipt.from_response(response)
     started = await start_upload_async(client, audio.size, audio.filename)
     await put_upload_async(client, started, audio)
     body = c.json_submit({"upload_id": started.upload_id}, model, language, hotwords, metadata, webhook_url)
-    return await submit_json_async(client, body, params)
+    return await submit_json_async(client, body, params, headers)
 
 
 async def start_upload_async(client: "AsyncVerbexSpeech", size: int, filename: Optional[str] = None) -> UploadStarted:
@@ -276,13 +303,14 @@ async def put_upload_async(client: "AsyncVerbexSpeech", started: UploadStarted, 
         raise _put_refused(response.status_code)
 
 
-async def submit_json_async(client: "AsyncVerbexSpeech", body: Dict[str, Any], params: List[Any]) -> SubmitReceipt:
+async def submit_json_async(client: "AsyncVerbexSpeech", body: Dict[str, Any], params: List[Any],
+                            headers: Dict[str, str]) -> SubmitReceipt:
     attempt = 0
     while True:
         try:
             response = await client._request("submit", "POST", "/v1/listen", params=params, json=body,
-                                             timeout=c.SUBMIT_TIMEOUT)
-            return SubmitReceipt.from_dict(response.json())
+                                             timeout=c.SUBMIT_TIMEOUT, headers=headers)
+            return SubmitReceipt.from_response(response)
         except BadRequestError as error:
             if error.code != "upload_incomplete" or attempt >= client._config.max_retries:
                 raise

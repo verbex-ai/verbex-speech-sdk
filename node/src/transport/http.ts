@@ -29,6 +29,8 @@ export interface RequestSpec {
   timeoutMs?: number;
   /** The caller's own X-Trace-Id, else a fresh UUID per attempt. */
   traceId?: string;
+  /** Extra headers, the same on every attempt (the submit's Idempotency-Key). */
+  headers?: Record<string, string>;
 }
 
 /** A response whose body has not been read yet. `release` stops its timeout timer. */
@@ -84,10 +86,15 @@ export class HttpClient {
 
   /** Sends a request and returns its JSON body, retrying per spec §8. */
   async requestJson(spec: RequestSpec): Promise<unknown> {
+    return (await this.requestJsonWithHeaders(spec)).body;
+  }
+
+  /** As `requestJson`, also returning the response headers. */
+  async requestJsonWithHeaders(spec: RequestSpec): Promise<{ body: unknown; headers: Headers }> {
     const open = await this.open(spec);
     try {
       const text = await open.response.text();
-      return text ? JSON.parse(text) : undefined;
+      return { body: text ? JSON.parse(text) : undefined, headers: open.response.headers };
     } catch (err) {
       if (open.timedOut()) throw new APITimeoutError(`No complete response within ${this.timeoutFor(spec)} ms (${spec.method} ${spec.path}).`);
       throw new APIConnectionError(`The response to ${spec.method} ${spec.path} could not be read.`, { cause: err });
@@ -140,7 +147,7 @@ export class HttpClient {
     }, timeoutMs);
     const release = () => clearTimeout(timer);
 
-    const headers: Record<string, string> = { ...this.authHeaders(spec.traceId), Accept: "application/json" };
+    const headers: Record<string, string> = { ...spec.headers, ...this.authHeaders(spec.traceId), Accept: "application/json" };
     let body: BodyInit | undefined;
     if (spec.json !== undefined) {
       headers["Content-Type"] = "application/json";

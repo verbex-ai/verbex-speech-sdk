@@ -16,16 +16,13 @@ final class RetryPolicy {
     static final long MAX_RETRY_AFTER_SECONDS = 60;
 
     private static final Set<String> RATE_LIMITED = Set.of("rate_limited", "workspace_rate_limited");
-    private static final Set<String> SUBMIT_503 = Set.of(
-            "engine_busy", "service_unavailable", "credit_unavailable", "catalogue_unavailable");
 
     private RetryPolicy() {
     }
 
     static boolean shouldRetry(CallKind kind, VerbexException error) {
         if (error instanceof ApiConnectionException || error instanceof ApiTimeoutException) {
-            // A submit may have created a job: never repeat it blindly.
-            return kind != CallKind.SUBMIT;
+            return true;
         }
         if (!(error instanceof ApiException api)) {
             return false;
@@ -35,8 +32,9 @@ final class RetryPolicy {
         if (status == 429) {
             return RATE_LIMITED.contains(code);
         }
-        if (kind == CallKind.SUBMIT) {
-            return status == 503 && SUBMIT_503.contains(code);
+        if (status == 409) {
+            // A submit carries its Idempotency-Key, so waiting out the first request is safe.
+            return kind == CallKind.SUBMIT && "request_in_progress".equals(code);
         }
         return status == 502 || status == 503 || status == 504;
     }

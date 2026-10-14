@@ -174,6 +174,42 @@
       "request_id": "99999999-9999-4999-8999-999999999999",
       "fields": [],
       "retry_after": null
+    },
+    {
+      "status": 422,
+      "headers": {
+        "X-Trace-Id": "7a2b3c4d-1e2f-4a5b-8c6d-9e0f1a2b3c4d"
+      },
+      "body": {
+        "error": {
+          "code": "idempotency_key_reused",
+          "message": "This Idempotency-Key was used for a different request. Send a new key with each new request.",
+          "request_id": "7a2b3c4d-1e2f-4a5b-8c6d-9e0f1a2b3c4d"
+        }
+      },
+      "type": "BadRequestError",
+      "code": "idempotency_key_reused",
+      "request_id": "7a2b3c4d-1e2f-4a5b-8c6d-9e0f1a2b3c4d",
+      "fields": [],
+      "retry_after": null
+    },
+    {
+      "status": 409,
+      "headers": {
+        "X-Trace-Id": "7a2b3c4d-1e2f-4a5b-8c6d-9e0f1a2b3c4d"
+      },
+      "body": {
+        "error": {
+          "code": "request_in_progress",
+          "message": "A request with this Idempotency-Key is still running. Retry shortly for its answer.",
+          "request_id": "7a2b3c4d-1e2f-4a5b-8c6d-9e0f1a2b3c4d"
+        }
+      },
+      "type": "BadRequestError",
+      "code": "request_in_progress",
+      "request_id": "7a2b3c4d-1e2f-4a5b-8c6d-9e0f1a2b3c4d",
+      "fields": [],
+      "retry_after": null
     }
   ]
 }
