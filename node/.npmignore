@@ -1,0 +1,4 @@
+# npm reads this file instead of .gitignore when packing. Without it, .gitignore's dist/ would
+# drop the build from the package installed from GitHub (see the root package.json). What goes
+# in the package is decided by the "files" field.
+node_modules/

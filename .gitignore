@@ -58,3 +58,7 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Root manifest (the package npm installs from GitHub)
+/node_modules/
+/package-lock.json

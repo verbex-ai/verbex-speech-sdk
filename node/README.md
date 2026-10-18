@@ -17,6 +17,30 @@ pnpm add @verbex-ai/verbex-speech-sdk
 yarn add @verbex-ai/verbex-speech-sdk
 ```
 
+### From GitHub
+
+Until the package is on the npm registry, install it from this repository. npm cannot install a
+subdirectory, so the repository root has its own `package.json`: it is this package, and its
+`prepare` script builds `node/` when npm fetches it.
+
+npm 12 refuses git dependencies, and blocks their `prepare` script, unless the project allows
+both. Without the second setting the install succeeds but the package has no code in it. In your
+project:
+
+```sh
+echo "allow-git=root" >> .npmrc
+npm pkg set "allowScripts[github:verbex-ai/verbex-speech-sdk]=true" --json
+npm install github:verbex-ai/verbex-speech-sdk     # or github:verbex-ai/verbex-speech-sdk#<tag or commit>
+```
+
+`allowScripts` matches a git dependency by its repository, not its package name, so
+`npm install-scripts approve @verbex-ai/verbex-speech-sdk` does not work for it. Add `#<commit>` to
+the key to approve one commit only. npm 11 and earlier need neither setting.
+
+pnpm and Yarn can install the subdirectory directly
+(`pnpm add "github:verbex-ai/verbex-speech-sdk#path:/node"`); `node/package.json` builds on
+`prepare` for them.
+
 Use it from your server, never from a browser: the API key must stay secret. For voice agents in
 the browser, Verbex has a separate package, `@verbex-ai/verbex-js-sdk`.
 

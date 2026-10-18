@@ -1,0 +1,36 @@
+{
+  "name": "@verbex-ai/verbex-speech-sdk",
+  "version": "0.1.0",
+  "description": "Node.js SDK for the Verbex Speech API: transcription (files and live) and speech synthesis.",
+  "type": "module",
+  "main": "./node/dist/index.js",
+  "types": "./node/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./node/dist/index.d.ts",
+      "import": "./node/dist/index.js"
+    },
+    "./listen": {
+      "types": "./node/dist/listen/index.d.ts",
+      "import": "./node/dist/listen/index.js"
+    },
+    "./speak": {
+      "types": "./node/dist/speak/index.d.ts",
+      "import": "./node/dist/speak/index.js"
+    }
+  },
+  "files": [
+    "node/dist",
+    "node/README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "prepare": "npm ci --prefix node --ignore-scripts && npm run build --prefix node"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}

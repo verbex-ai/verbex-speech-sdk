@@ -10,6 +10,11 @@ separate `@verbex-ai/verbex-js-sdk`.)
 | [`node/`](node/README.md) | npm `@verbex-ai/verbex-speech-sdk` | Node.js 18+ (server side) |
 | [`java/`](java/README.md) | Maven `ai.verbex:verbex-speech-sdk` | Java 17+ |
 
+The root `package.json` is the Node.js package as npm installs it from GitHub
+(`npm install github:verbex-ai/verbex-speech-sdk`): it builds `node/` on `prepare`. It must
+describe the same package as `node/package.json`, which a test in `node/` checks. See
+[node/README.md](node/README.md#from-github) for the two settings npm 12 needs.
+
 - [`SPEC.md`](SPEC.md) is the contract all three implement: the calls, defaults, error types,
   retry rules and WebSocket behaviour.
 - [`conformance/`](conformance/) holds the JSON fixtures every SDK's tests load: example
