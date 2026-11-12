@@ -1,5 +1,7 @@
 package ai.verbex.speech.sdk.listen.job;
 
+import ai.verbex.speech.sdk.transport.Idempotency;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -10,7 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 /**
  * One file to transcribe (spec §4.2): exactly one source ({@link Builder#file}, {@link Builder#bytes},
@@ -22,8 +23,6 @@ public final class TranscribeRequest {
     public static final long DIRECT_MAX_BYTES = 1_048_576L;
     /** Files up to this size are sent by the upload flow; larger ones are refused locally. */
     public static final long UPLOAD_MAX_BYTES = 104_857_600L;
-
-    private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[\\x21-\\x7E]{1,255}");
 
     private final Path file;
     private final byte[] bytes;
@@ -290,9 +289,7 @@ public final class TranscribeRequest {
             if (language == null || language.isBlank()) {
                 throw new IllegalArgumentException("language is required");
             }
-            if (idempotencyKey != null && !IDEMPOTENCY_KEY.matcher(idempotencyKey).matches()) {
-                throw new IllegalArgumentException("idempotencyKey must be 1 to 255 visible ASCII characters");
-            }
+            Idempotency.check(idempotencyKey);
             return new TranscribeRequest(this);
         }
     }

@@ -190,16 +190,25 @@ finishes, and returns all segments in order. It does not pace the audio; the cal
 `GET /v1/speak/voices`. Items with `model`, `model_display_name`, `code`, `display_name`,
 `language`, `gender`, `style`, `sample_url` (nullable).
 
-### 5.2 `speak.synthesize(model, voice, text, format="pcm", request_id=None, settings={}, tags=None)`
+### 5.2 `speak.synthesize(model, voice, text, format="pcm", request_id=None, settings={}, tags=None, idempotency_key=None)`
 
 `POST /v1/speak?format=pcm|wav` with JSON `{model, voice, text, request_id?, …settings}` (settings
-as top-level fields). Returns the whole audio with `content_type` and `request_id` (from
-`X-Request-Id`). 360 s timeout. A body that ends with a transport error is a `SpeakError` with code
-`audio_incomplete`, never short audio.
+as top-level fields). Returns the whole audio with `content_type`, `request_id` (from
+`X-Request-Id`) and `replayed`. 360 s timeout. A body that ends with a transport error is a
+`SpeakError` with code `audio_incomplete`, never short audio.
+
+Every speak sends `Idempotency-Key`, made and checked as for a submit (§4.2): the caller's
+`idempotency_key`, else a random UUID (v4) made once per call and sent with each of its retries. An
+utterance that has spoken is billed once: the same request again with its key is spoken again without
+charge, at most 3 times within 24 hours, and its response carries `Idempotent-Replayed: true`
+(`replayed` true). Past that the API answers `422 idempotency_replays_exhausted`. The same key with a
+different request is `422 idempotency_key_reused`; while the first request still speaks,
+`409 request_in_progress` (retried, §8). A caller who retries an utterance itself, after the audio
+broke off, passes its own key, the same for each try.
 
 `speak.synthesize_stream(...)` takes the same arguments and yields the audio chunks as they arrive,
-for playback that starts before synthesis ends. The response headers are available before the
-first chunk.
+for playback that starts before synthesis ends. The response headers, and `replayed`, are available
+before the first chunk.
 
 ### 5.3 Many utterances: `speak.stream()`
 
@@ -264,7 +273,7 @@ longer wait is not taken, the error is raised).
 |---|---|
 | `GET` (models, voices, job) | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
 | `POST /v1/listen/uploads` | same as `GET` (an unused upload expires on its own) |
-| `POST /v1/speak` | same as `GET`, only before any audio has been received (status arrives with the first audio, and nothing is billed without audio) |
+| `POST /v1/speak` | same as `GET`, and 409 `request_in_progress`, only before any audio has been received (status arrives with the first audio, and nothing is billed without audio). Every attempt carries the same `Idempotency-Key` (§5.2) |
 | `POST /v1/listen` (submit) | same as `GET`, and 409 `request_in_progress`. Safe because every submit carries its `Idempotency-Key` (§4.2): a retry after a lost answer gets the first request's receipt, never a second job |
 | storage `PUT` | never |
 | WebSocket handshakes | never (the caller reconnects; `StreamError.retryable` says when it makes sense) |

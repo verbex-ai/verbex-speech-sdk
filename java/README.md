@@ -237,6 +237,23 @@ The call is given 360 s until the first audio. A body that ends with a transport
 `SpeakException` with code `audio_incomplete` (from `read` when streaming); it is never returned as
 shorter audio. Retries happen only before any audio has arrived.
 
+Every speak call carries an `Idempotency-Key` header, the same one for each of its automatic
+retries. An utterance is billed once: if the audio breaks off and you send the same request again
+with the same key, it is spoken again without charge (up to 3 times within 24 hours), and
+`replayed()` is `true` on the `SpeakAudio` (or the `SpeakAudioStream`). To use this for your own
+retries, set your key, one per utterance:
+
+```java
+SpeakRequest request = SpeakRequest.builder()
+        .model(model).voice(voice).text(text)
+        .idempotencyKey(UUID.randomUUID().toString())   // keep it for this utterance's retries
+        .build();
+```
+
+Past the 3 free replays the API refuses the key: `BadRequestException` with code
+`idempotency_replays_exhausted` (422). Reusing a key for different text throws `BadRequestException`
+with code `idempotency_key_reused` (422).
+
 ### Many utterances (WebSocket)
 
 ```java
@@ -309,7 +326,7 @@ and the error is thrown.
 | Call | Retried on |
 |---|---|
 | `models`, `voices`, `get`, starting an upload | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
-| `synthesize`, `synthesizeStream` | as above, only before any audio has arrived |
+| `synthesize`, `synthesizeStream` | as above, and 409 `request_in_progress`, only before any audio has arrived. Every attempt carries the same `Idempotency-Key`. 422 is not retried |
 | `submit` (and `transcribe`) | as for reads, and 409 `request_in_progress` (the first request with the same key is still running). Safe because every attempt carries the same `Idempotency-Key`: a retry after a lost answer gets the first receipt, never a second job. 422 `idempotency_key_reused` is not retried |
 | storage `PUT` | never |
 | WebSocket handshakes | never; reconnect yourself when `StreamException.retryable()` says so |

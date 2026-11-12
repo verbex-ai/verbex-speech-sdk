@@ -187,6 +187,22 @@ with client.speak.synthesize_stream(model=voice.model, voice=voice.code, text=".
         player.write(chunk)
 ```
 
+### Speaking safely more than once
+
+Every `synthesize` carries an `Idempotency-Key` header, the same one for each of its automatic
+retries. An utterance is billed once: if the audio breaks off and you send the same request again
+with the same key, it is spoken again without charge (up to 3 times within 24 hours), and
+`audio.replayed` (or `stream.replayed`) is `True`. To use this for your own retries, pass your key:
+
+```python
+key = str(uuid.uuid4())  # import uuid; one per utterance, kept for its retries
+audio = client.speak.synthesize(model=voice.model, voice=voice.code, text="...", idempotency_key=key)
+```
+
+Past the 3 free replays the API refuses the key: `BadRequestError` with code
+`idempotency_replays_exhausted` (422). Reusing a key for different text raises `BadRequestError`
+with code `idempotency_key_reused` (422).
+
 Many utterances over one connection, one at a time:
 
 ```python
@@ -244,8 +260,9 @@ Up to `max_retries` (default 2) automatic retries with exponential backoff, hono
 `Retry-After` up to 60 seconds:
 
 - reads, upload starts, speech and submits: on connection errors, timeouts, 429 rate limits, 502,
-  503, 504. A submit is safe to retry because it carries its idempotency key (above); it is also
-  retried on `409 request_in_progress`, while the first request with its key still runs;
+  503, 504 (speech only before any audio has arrived). Submits and speech are safe to retry because
+  they carry their idempotency key (above); both are also retried on `409 request_in_progress`,
+  while the first request with their key still runs;
 - the storage upload and WebSocket handshakes: never.
 
 `429 concurrency_limit` is not retried: wait for some of your own running work to finish.

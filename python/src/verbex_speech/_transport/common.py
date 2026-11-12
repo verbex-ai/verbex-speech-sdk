@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import uuid
 from dataclasses import dataclass
 from typing import Any, BinaryIO, Dict, Iterable, List, Mapping, Optional, Tuple, Union
@@ -19,6 +20,8 @@ SUBMIT_TIMEOUT = 330.0
 SPEAK_TIMEOUT = 360.0
 CONNECT_TIMEOUT = 10.0
 SPEAK_FIELDS = frozenset({"model", "voice", "text", "request_id"})
+IDEMPOTENCY_HEADER = "Idempotency-Key"
+_IDEMPOTENCY_KEY = re.compile(r"[\x21-\x7e]{1,255}")
 
 Source = Union[bytes, bytearray, memoryview, str, "os.PathLike[str]", BinaryIO]
 
@@ -202,6 +205,22 @@ def speak_body(model: str, voice: str, text: str, request_id: Optional[str],
         body["request_id"] = request_id
     body.update(settings or {})
     return body
+
+
+def idempotency_headers(idempotency_key: Optional[str]) -> Dict[str, str]:
+    """The Idempotency-Key header a submit or a speak sends with every attempt: the caller's key, else a
+    new UUID for this call, the same for each of its retries."""
+    if idempotency_key is None:
+        return {IDEMPOTENCY_HEADER: str(uuid.uuid4())}
+    if not isinstance(idempotency_key, str) or not _IDEMPOTENCY_KEY.fullmatch(idempotency_key):
+        raise local_error("idempotency_key must be 1 to 255 visible ASCII characters, without spaces.",
+                          "idempotency_key")
+    return {IDEMPOTENCY_HEADER: idempotency_key}
+
+
+def replayed(headers: Mapping[str, str]) -> bool:
+    """True when the answer came from an earlier request with the same Idempotency-Key."""
+    return headers.get("Idempotent-Replayed", "").strip().lower() == "true"
 
 
 def speak_params(format: str, tags: Optional[Iterable[str]]) -> List[Tuple[str, str]]:

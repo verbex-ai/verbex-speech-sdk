@@ -47,16 +47,19 @@ class Speak:
 
     def synthesize_stream(self, *, model: str, voice: str, text: str, format: str = "pcm",
                           request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-                          tags: Optional[List[str]] = None) -> SpeechStream:
+                          tags: Optional[List[str]] = None,
+                          idempotency_key: Optional[str] = None) -> SpeechStream:
         return synthesis.synthesize_stream(self._client, model=model, voice=voice, text=text, format=format,
-                                           request_id=request_id, settings=settings, tags=tags)
+                                           request_id=request_id, settings=settings, tags=tags,
+                                           idempotency_key=idempotency_key)
 
     def synthesize(self, *, model: str, voice: str, text: str, format: str = "pcm",
                    request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-                   tags: Optional[List[str]] = None) -> SpeechAudio:
+                   tags: Optional[List[str]] = None, idempotency_key: Optional[str] = None) -> SpeechAudio:
         """The whole utterance: raw PCM 16 kHz mono s16le, or WAV with format="wav"."""
         return synthesis.synthesize(self._client, model=model, voice=voice, text=text, format=format,
-                                    request_id=request_id, settings=settings, tags=tags)
+                                    request_id=request_id, settings=settings, tags=tags,
+                                    idempotency_key=idempotency_key)
 
     def stream(self, *, tags: Optional[List[str]] = None) -> SpeakSession:
         """Many utterances, one at a time, over one socket."""
@@ -74,17 +77,20 @@ class AsyncSpeak:
 
     async def synthesize_stream(self, *, model: str, voice: str, text: str, format: str = "pcm",
                                 request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-                                tags: Optional[List[str]] = None) -> AsyncSpeechStream:
+                                tags: Optional[List[str]] = None,
+                                idempotency_key: Optional[str] = None) -> AsyncSpeechStream:
         return await synthesis.synthesize_stream_async(self._client, model=model, voice=voice, text=text,
                                                        format=format, request_id=request_id, settings=settings,
-                                                       tags=tags)
+                                                       tags=tags, idempotency_key=idempotency_key)
 
     async def synthesize(self, *, model: str, voice: str, text: str, format: str = "pcm",
                          request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-                         tags: Optional[List[str]] = None) -> SpeechAudio:
+                         tags: Optional[List[str]] = None,
+                         idempotency_key: Optional[str] = None) -> SpeechAudio:
         """The whole utterance: raw PCM 16 kHz mono s16le, or WAV with format="wav"."""
         return await synthesis.synthesize_async(self._client, model=model, voice=voice, text=text, format=format,
-                                                request_id=request_id, settings=settings, tags=tags)
+                                                request_id=request_id, settings=settings, tags=tags,
+                                                idempotency_key=idempotency_key)
 
     def stream(self, *, tags: Optional[List[str]] = None) -> AsyncSpeakSession:
         """Many utterances, one at a time, over one socket."""

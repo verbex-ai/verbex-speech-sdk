@@ -1,8 +1,6 @@
 """File transcription jobs: submit (in the request or through the upload flow), get, wait, transcribe."""
 from __future__ import annotations
 
-import re
-import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Iterable, List, Mapping, Optional
 
@@ -15,10 +13,6 @@ if TYPE_CHECKING:
     from ..client import AsyncVerbexSpeech, VerbexSpeech
 
 FINISHED = frozenset({"completed", "failed", "cancelled"})
-
-
-IDEMPOTENCY_HEADER = "Idempotency-Key"
-_IDEMPOTENCY_KEY = re.compile(r"[\x21-\x7e]{1,255}")
 
 
 @dataclass(frozen=True)
@@ -40,8 +34,7 @@ class SubmitReceipt:
 
     @classmethod
     def from_response(cls, response: httpx.Response) -> "SubmitReceipt":
-        replayed = response.headers.get("Idempotent-Replayed", "").strip().lower() == "true"
-        return cls.from_dict(response.json(), replayed)
+        return cls.from_dict(response.json(), c.replayed(response.headers))
 
 
 @dataclass(frozen=True)
@@ -146,13 +139,7 @@ def _check_submit(source: Any, url: Optional[str], model: str, language: str, ho
     if (source is None) == (url is None):
         raise c.local_error("Pass exactly one of source and url.", "source")
     c.submit_options(model, language, hotwords, metadata, webhook_url)
-    if idempotency_key is None:
-        # One key per submit call, the same for each of its retries.
-        return {IDEMPOTENCY_HEADER: str(uuid.uuid4())}
-    if not isinstance(idempotency_key, str) or not _IDEMPOTENCY_KEY.fullmatch(idempotency_key):
-        raise c.local_error("idempotency_key must be 1 to 255 visible ASCII characters, without spaces.",
-                            "idempotency_key")
-    return {IDEMPOTENCY_HEADER: idempotency_key}
+    return c.idempotency_headers(idempotency_key)
 
 
 def _direct_files(audio: c.Audio) -> Dict[str, Any]:

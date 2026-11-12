@@ -16,9 +16,10 @@ export const RETRY_AFTER_CAP_SEC = 60;
 
 /** Whether an attempt with this outcome is retried automatically. */
 export function shouldRetry(call: RetryCall, outcome: Outcome, code?: string): boolean {
-  // A submit carries its Idempotency-Key, so a retry gets the first request's receipt; a
-  // 409 request_in_progress means that first request is still running.
-  if (call === "submit" && outcome === 409) return code === "request_in_progress";
+  // A submit or speak carries its Idempotency-Key, so a retry gets the first request's answer
+  // (a speak is spoken again, not billed); a 409 request_in_progress means that first request
+  // is still running.
+  if ((call === "submit" || call === "speak") && outcome === 409) return code === "request_in_progress";
   if (outcome === "connection_error" || outcome === "timeout") return true;
   if (outcome === 429) return code !== undefined && RATE_CODES.has(code);
   return outcome === 502 || outcome === 503 || outcome === 504;

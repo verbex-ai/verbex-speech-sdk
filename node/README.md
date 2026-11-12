@@ -214,6 +214,23 @@ for await (const chunk of stream) speaker.write(chunk);
 A body that ends with a transport error throws `SpeakError` (`audio_incomplete`); you never
 get short audio silently.
 
+#### Speaking safely more than once
+
+Every `synthesize` and `synthesizeStream` carries an `Idempotency-Key` header, the same one for
+each of its automatic retries. An utterance is billed once: if the audio breaks off and you send
+the same request again with the same key, it is spoken again without charge (up to 3 times within
+24 hours), and `replayed` is `true` on the result (or the stream). To use this for your own
+retries, pass your key:
+
+```js
+const idempotencyKey = crypto.randomUUID(); // one per utterance, kept for its retries
+const { audio, replayed } = await client.speak.synthesize({ model, voice, text, idempotencyKey });
+```
+
+Past the 3 free replays the API refuses the key: `BadRequestError` with code
+`idempotency_replays_exhausted` (422). Reusing a key for different text throws `BadRequestError`
+with code `idempotency_key_reused` (422).
+
 ### Many utterances on one socket
 
 ```js
@@ -237,7 +254,7 @@ Every error is a `VerbexError`.
 | Type | When |
 |---|---|
 | `ConfigurationError` | Missing or invalid key or base URL |
-| `ValidationError` | Refused locally, nothing sent (file over 100 MiB, stream without `size`, a bad `idempotencyKey`, `send` after `finish`, overlapping `say`). `code` is `validation_failed`, or `audio_too_large` for a file over 100 MiB |
+| `ValidationError` | Refused locally, nothing sent (file over 100 MiB, stream without `size`, a bad `idempotencyKey` on a submit or a speak, `send` after `finish`, overlapping `say`). `code` is `validation_failed`, or `audio_too_large` for a file over 100 MiB |
 | `ApiError` | An HTTP error: `status`, `code`, `message`, `requestId`, `fields`, `retryAfter` |
 | `BadRequestError` | 400, 405, 406, 409, 413, 415, 422 |
 | `AuthenticationError` | 401 |
@@ -276,7 +293,7 @@ wait is not taken and the error is thrown.
 | Call | Retried on |
 |---|---|
 | models, voices, job reads, upload start | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
-| `speak.synthesize` | the same, only before any audio has arrived |
+| `speak.synthesize` | the same, and 409 `request_in_progress`, only before any audio has arrived. Every attempt carries the same `Idempotency-Key`. 422 is not retried |
 | submit (`POST /v1/listen`) | the same as reads, and 409 `request_in_progress` (the first request with this key is still running). Safe because every attempt carries the same `Idempotency-Key`: a retry after a lost answer gets the first receipt, never a second job. 422 `idempotency_key_reused` is not retried |
 | submit after an upload | also 409 `upload_incomplete`, 1 s apart |
 | storage PUT, WebSocket handshakes | never |

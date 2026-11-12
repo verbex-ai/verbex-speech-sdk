@@ -5,6 +5,7 @@ import ai.verbex.speech.sdk.error.RateLimitException;
 import ai.verbex.speech.sdk.listen.Listen;
 import ai.verbex.speech.sdk.transport.CallKind;
 import ai.verbex.speech.sdk.transport.HttpTransport;
+import ai.verbex.speech.sdk.transport.Idempotency;
 import ai.verbex.speech.sdk.transport.Json;
 
 import java.io.IOException;
@@ -16,7 +17,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -54,7 +54,7 @@ public final class Jobs {
      */
     public Receipt submit(TranscribeRequest request) {
         String path = "/v1/listen" + HttpTransport.queryString(HttpTransport.tagQuery(request.tags()));
-        String key = request.idempotencyKey() != null ? request.idempotencyKey() : UUID.randomUUID().toString();
+        String key = Idempotency.keyFor(request.idempotencyKey());
         if (request.isUrl()) {
             Map<String, Object> body = jsonBody(request);
             body.put("url", request.url());
@@ -122,13 +122,11 @@ public final class Jobs {
     private Receipt post(String path, String traceId, String key, String contentType, byte[] body) {
         HttpResponse<byte[]> response = transport.send(CallKind.SUBMIT, traceId,
                 trace -> transport.request(path, trace, SUBMIT_TIMEOUT).header("Content-Type", contentType)
-                        .header("Idempotency-Key", key)
+                        .header(Idempotency.HEADER, key)
                         .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build(),
                 HttpResponse.BodyHandlers.ofByteArray());
         Receipt r = Json.read(response.body(), Receipt.class);
-        boolean replayed = response.headers().firstValue("Idempotent-Replayed")
-                .map(v -> v.trim().equalsIgnoreCase("true")).orElse(false);
-        return new Receipt(r.jobId(), r.status(), r.queuePosition(), replayed);
+        return new Receipt(r.jobId(), r.status(), r.queuePosition(), Idempotency.replayed(response.headers()));
     }
 
     private static Map<String, Object> jsonBody(TranscribeRequest r) {

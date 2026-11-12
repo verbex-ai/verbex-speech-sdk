@@ -1,5 +1,7 @@
 package ai.verbex.speech.sdk.speak;
 
+import ai.verbex.speech.sdk.transport.Idempotency;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,7 @@ public final class SpeakRequest {
     private final AudioFormat format;
     private final List<String> tags;
     private final String traceId;
+    private final String idempotencyKey;
 
     private SpeakRequest(Builder b) {
         this.model = b.model;
@@ -30,6 +33,7 @@ public final class SpeakRequest {
         this.format = b.format;
         this.tags = b.tags == null ? List.of() : List.copyOf(b.tags);
         this.traceId = b.traceId;
+        this.idempotencyKey = b.idempotencyKey;
     }
 
     public static Builder builder() {
@@ -49,6 +53,11 @@ public final class SpeakRequest {
     /** The trace id to send, or null for a fresh one. */
     public String traceId() {
         return traceId;
+    }
+
+    /** The caller's {@code Idempotency-Key}, or {@code null} when the SDK makes one per call. */
+    public String idempotencyKey() {
+        return idempotencyKey;
     }
 
     /** The JSON body the SDK sends: the core fields, then the settings. */
@@ -92,6 +101,7 @@ public final class SpeakRequest {
         private AudioFormat format = AudioFormat.PCM;
         private List<String> tags;
         private String traceId;
+        private String idempotencyKey;
 
         private Builder() {
         }
@@ -141,11 +151,26 @@ public final class SpeakRequest {
             return this;
         }
 
-        /** @throws IllegalArgumentException without model, voice or text, or when a setting names a core field */
+        /**
+         * Your own {@code Idempotency-Key} for the speak: 1 to 255 visible ASCII characters. Without
+         * one, the SDK makes a random UUID per call. Pass your own (saved with the work) when you may
+         * ask for the same utterance again from another process: for 24 hours the API speaks a repeated
+         * key again without billing it, up to 3 times.
+         */
+        public Builder idempotencyKey(String idempotencyKey) {
+            this.idempotencyKey = idempotencyKey;
+            return this;
+        }
+
+        /**
+         * @throws IllegalArgumentException without model, voice or text, when a setting names a core
+         *                                  field, or unless any idempotency key is 1 to 255 visible ASCII characters
+         */
         public SpeakRequest build() {
             if (model == null || voice == null || text == null) {
                 throw new IllegalArgumentException("model, voice and text are required");
             }
+            Idempotency.check(idempotencyKey);
             SpeakRequest r = new SpeakRequest(this);
             r.body();
             return r;

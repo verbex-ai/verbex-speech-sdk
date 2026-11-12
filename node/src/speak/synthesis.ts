@@ -1,6 +1,7 @@
 /**
  * One utterance over HTTP: `POST /v1/speak`, whole or streamed (spec §5.2).
  */
+import { idempotencyHeaders, isReplayed } from "../transport/common.js";
 import type { HttpClient, OpenResponse, RequestOptions } from "../transport/http.js";
 import { SpeakError } from "./errors.js";
 
@@ -18,6 +19,12 @@ export interface SynthesizeParams extends RequestOptions {
   /** Generation settings the model offers (e.g. `temperature`), sent as top-level fields. */
   settings?: Record<string, unknown>;
   tags?: string[];
+  /**
+   * Sent as `Idempotency-Key`, 1 to 255 visible ASCII characters. Default: a random UUID made
+   * once per call and reused by every retry of it. A retry with the same key after the audio
+   * was spoken is spoken again without being billed (up to 3 times in 24 hours).
+   */
+  idempotencyKey?: string;
 }
 
 export interface SpeechAudio {
@@ -25,12 +32,19 @@ export interface SpeechAudio {
   contentType: string;
   /** From `X-Request-Id`. */
   requestId: string | undefined;
+  /**
+   * True when the API answered `Idempotent-Replayed: true`: an earlier request with the same
+   * idempotency key was spoken, and this one is spoken again without being billed.
+   */
+  replayed: boolean;
 }
 
 /** Audio streamed as it is synthesised. The headers are known before the first chunk. */
 export interface SpeechStream extends AsyncIterable<Buffer> {
   contentType: string;
   requestId: string | undefined;
+  /** As `SpeechAudio.replayed`. */
+  replayed: boolean;
 }
 
 /** Speaks one utterance and returns the whole audio. A body cut short is a `SpeakError`, never short audio. */
@@ -38,11 +52,13 @@ export async function synthesize(http: HttpClient, params: SynthesizeParams): Pr
   const stream = await synthesizeStream(http, params);
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(chunk);
-  return { audio: Buffer.concat(chunks), contentType: stream.contentType, requestId: stream.requestId };
+  return { audio: Buffer.concat(chunks), contentType: stream.contentType, requestId: stream.requestId, replayed: stream.replayed };
 }
 
 /** Speaks one utterance and yields the audio chunks as they arrive. */
 export async function synthesizeStream(http: HttpClient, params: SynthesizeParams): Promise<SpeechStream> {
+  // One key for every attempt of this call, so a retry is not billed a second time.
+  const headers = idempotencyHeaders(params.idempotencyKey);
   const body: Record<string, unknown> = { ...(params.settings ?? {}), model: params.model, voice: params.voice, text: params.text };
   if (params.requestId !== undefined) body.request_id = params.requestId;
   const query: Array<[string, string]> = [["format", params.format ?? "pcm"]];
@@ -55,11 +71,13 @@ export async function synthesizeStream(http: HttpClient, params: SynthesizeParam
     call: "speak",
     timeoutMs: params.timeoutMs ?? Math.max(SPEAK_TIMEOUT_MS, http.config.timeoutMs),
     traceId: params.traceId,
+    headers,
   });
   const requestId = open.response.headers.get("x-request-id") ?? params.requestId;
   return {
     contentType: open.response.headers.get("content-type") ?? "",
     requestId,
+    replayed: isReplayed(open.response.headers),
     [Symbol.asyncIterator]: () => readAudio(open, requestId),
   };
 }

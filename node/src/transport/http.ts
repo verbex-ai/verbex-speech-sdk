@@ -29,7 +29,7 @@ export interface RequestSpec {
   timeoutMs?: number;
   /** The caller's own X-Trace-Id, else a fresh UUID per attempt. */
   traceId?: string;
-  /** Extra headers, the same on every attempt (the submit's Idempotency-Key). */
+  /** Extra headers, the same on every attempt (the submit's or speak's Idempotency-Key). */
   headers?: Record<string, string>;
 }
 

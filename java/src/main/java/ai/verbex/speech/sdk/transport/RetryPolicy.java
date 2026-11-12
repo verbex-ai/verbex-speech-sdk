@@ -33,8 +33,8 @@ final class RetryPolicy {
             return RATE_LIMITED.contains(code);
         }
         if (status == 409) {
-            // A submit carries its Idempotency-Key, so waiting out the first request is safe.
-            return kind == CallKind.SUBMIT && "request_in_progress".equals(code);
+            // A submit or a speak carries its Idempotency-Key, so waiting out the first request is safe.
+            return (kind == CallKind.SUBMIT || kind == CallKind.SPEAK) && "request_in_progress".equals(code);
         }
         return status == 502 || status == 503 || status == 504;
     }

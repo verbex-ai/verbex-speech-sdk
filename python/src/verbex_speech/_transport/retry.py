@@ -15,14 +15,14 @@ def should_retry(call: str, status: Optional[int] = None, code: Optional[str] = 
     """``call`` is ``get``, ``upload_start``, ``speak`` or ``submit``.
 
     A submit is retried as a read is: it carries its Idempotency-Key, so a retry after a lost answer
-    gets the first request's receipt rather than a second job. It is also retried while the first
-    request with its key still runs (409 ``request_in_progress``).
+    gets the first request's receipt rather than a second job. A speak carries one too. Both are also
+    retried while the first request with their key still runs (409 ``request_in_progress``).
     """
     if error is not None:
         return isinstance(error, (APIConnectionError, APITimeoutError))
     if status == 429:
         return code in RATE_LIMITS
-    if call == "submit" and status == 409:
+    if call in ("submit", "speak") and status == 409:
         return code == "request_in_progress"
     return status in (502, 503, 504)
 

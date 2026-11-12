@@ -15,11 +15,13 @@ import java.io.InputStream;
 public final class SpeakAudioStream extends FilterInputStream {
     private final String contentType;
     private final String requestId;
+    private final boolean replayed;
 
-    SpeakAudioStream(InputStream in, String contentType, String requestId) {
+    SpeakAudioStream(InputStream in, String contentType, String requestId, boolean replayed) {
         super(in);
         this.contentType = contentType;
         this.requestId = requestId;
+        this.replayed = replayed;
     }
 
     /** {@code audio/L16;rate=16000;channels=1} or {@code audio/wav}. */
@@ -30,6 +32,14 @@ public final class SpeakAudioStream extends FilterInputStream {
     /** From {@code X-Request-Id}: your request id or the generated one. */
     public String requestId() {
         return requestId;
+    }
+
+    /**
+     * True when the API answered with {@code Idempotent-Replayed: true}: an earlier request with the
+     * same idempotency key was billed, and this one is spoken again without charge.
+     */
+    public boolean replayed() {
+        return replayed;
     }
 
     @Override

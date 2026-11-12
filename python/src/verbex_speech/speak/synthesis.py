@@ -15,11 +15,16 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class SpeechAudio:
-    """One synthesised utterance: raw PCM (16 kHz mono s16le) or WAV."""
+    """One synthesised utterance: raw PCM (16 kHz mono s16le) or WAV.
+
+    ``replayed`` is true when an earlier request with the same idempotency key was billed, and this
+    one was spoken again without charge.
+    """
 
     data: bytes = field(repr=False)
     content_type: Optional[str]
     request_id: Optional[str]
+    replayed: bool = False
 
 
 class SpeechStream:
@@ -29,6 +34,7 @@ class SpeechStream:
         self._response = response
         self.request_id: Optional[str] = response.headers.get("x-request-id")
         self.content_type: Optional[str] = response.headers.get("content-type")
+        self.replayed: bool = c.replayed(response.headers)
 
     def __iter__(self) -> Iterator[bytes]:
         try:
@@ -55,6 +61,7 @@ class AsyncSpeechStream:
         self._response = response
         self.request_id: Optional[str] = response.headers.get("x-request-id")
         self.content_type: Optional[str] = response.headers.get("content-type")
+        self.replayed: bool = c.replayed(response.headers)
 
     def __aiter__(self) -> AsyncIterator[bytes]:
         return self._chunks()
@@ -79,37 +86,41 @@ class AsyncSpeechStream:
 
 def synthesize_stream(client: "VerbexSpeech", *, model: str, voice: str, text: str, format: str = "pcm",
                       request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-                      tags: Optional[List[str]] = None) -> SpeechStream:
+                      tags: Optional[List[str]] = None, idempotency_key: Optional[str] = None) -> SpeechStream:
     body = c.speak_body(model, voice, text, request_id, settings)
     params = c.speak_params(format, tags)
+    headers = c.idempotency_headers(idempotency_key)
     return SpeechStream(client._request("speak", "POST", "/v1/speak", params=params, json=body,
-                                        timeout=c.SPEAK_TIMEOUT, stream=True))
+                                        timeout=c.SPEAK_TIMEOUT, stream=True, headers=headers))
 
 
 def synthesize(client: "VerbexSpeech", *, model: str, voice: str, text: str, format: str = "pcm",
                request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-               tags: Optional[List[str]] = None) -> SpeechAudio:
+               tags: Optional[List[str]] = None, idempotency_key: Optional[str] = None) -> SpeechAudio:
     """The whole utterance: raw PCM 16 kHz mono s16le, or WAV with format="wav"."""
     with synthesize_stream(client, model=model, voice=voice, text=text, format=format, request_id=request_id,
-                           settings=settings, tags=tags) as stream:
+                           settings=settings, tags=tags, idempotency_key=idempotency_key) as stream:
         data = b"".join(stream)
-        return SpeechAudio(data, stream.content_type, stream.request_id)
+        return SpeechAudio(data, stream.content_type, stream.request_id, stream.replayed)
 
 
 async def synthesize_stream_async(client: "AsyncVerbexSpeech", *, model: str, voice: str, text: str,
                                   format: str = "pcm", request_id: Optional[str] = None,
                                   settings: Optional[Mapping[str, Any]] = None,
-                                  tags: Optional[List[str]] = None) -> AsyncSpeechStream:
+                                  tags: Optional[List[str]] = None,
+                                  idempotency_key: Optional[str] = None) -> AsyncSpeechStream:
     body = c.speak_body(model, voice, text, request_id, settings)
     params = c.speak_params(format, tags)
+    headers = c.idempotency_headers(idempotency_key)
     return AsyncSpeechStream(await client._request("speak", "POST", "/v1/speak", params=params, json=body,
-                                                   timeout=c.SPEAK_TIMEOUT, stream=True))
+                                                   timeout=c.SPEAK_TIMEOUT, stream=True, headers=headers))
 
 
 async def synthesize_async(client: "AsyncVerbexSpeech", *, model: str, voice: str, text: str, format: str = "pcm",
                            request_id: Optional[str] = None, settings: Optional[Mapping[str, Any]] = None,
-                           tags: Optional[List[str]] = None) -> SpeechAudio:
+                           tags: Optional[List[str]] = None, idempotency_key: Optional[str] = None) -> SpeechAudio:
     async with await synthesize_stream_async(client, model=model, voice=voice, text=text, format=format,
-                                             request_id=request_id, settings=settings, tags=tags) as stream:
+                                             request_id=request_id, settings=settings, tags=tags,
+                                             idempotency_key=idempotency_key) as stream:
         data = b"".join([chunk async for chunk in stream])
-        return SpeechAudio(data, stream.content_type, stream.request_id)
+        return SpeechAudio(data, stream.content_type, stream.request_id, stream.replayed)
