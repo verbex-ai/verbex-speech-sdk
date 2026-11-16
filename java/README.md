@@ -34,7 +34,7 @@ Gradle (Groovy):
 implementation 'ai.verbex:verbex-speech-sdk:0.1.0'
 ```
 
-Build from source: `mvn install` in this directory (installs `0.1.0-SNAPSHOT` into your local
+Build from source: `mvn install` in this directory (installs the version in `pom.xml` into your local
 repository).
 
 ## Packages

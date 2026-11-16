@@ -59,7 +59,11 @@ class HttpBehaviourTest {
         c.listen().models();
         FakeApi.Recorded first = api.requests.get(0);
         assertEquals("Token " + TestClients.KEY, first.header("Authorization"));
-        assertEquals("verbex-speech-java/0.1.0-SNAPSHOT my-app/2", first.header("User-Agent"));
+        // The version is the pom's, stamped into version.properties by the build; never the unfiltered
+        // placeholder, and not written into the test, so a version bump does not break it.
+        assertTrue(VerbexSpeech.VERSION.matches("\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?"),
+                "SDK version not stamped by the build: " + VerbexSpeech.VERSION);
+        assertEquals("verbex-speech-java/" + VerbexSpeech.VERSION + " my-app/2", first.header("User-Agent"));
         UUID.fromString(first.header("X-Trace-Id"));
         assertNotEquals(first.header("X-Trace-Id"), api.requests.get(1).header("X-Trace-Id"));
     }
