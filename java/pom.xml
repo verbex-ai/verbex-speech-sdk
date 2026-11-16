@@ -11,6 +11,30 @@
 
   <name>Verbex Speech SDK for Java</name>
   <description>Client for the Verbex Speech API: speech-to-text and text-to-speech.</description>
+  <url>https://github.com/verbex-ai/verbex-speech-sdk</url>
+
+  <!-- Maven Central requires licence, developer and SCM details. -->
+  <licenses>
+    <license>
+      <name>Proprietary</name>
+      <url>https://github.com/verbex-ai/verbex-speech-sdk</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Verbex</name>
+      <organization>Verbex</organization>
+      <organizationUrl>https://verbex.ai</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/verbex-ai/verbex-speech-sdk.git</connection>
+    <developerConnection>scm:git:https://github.com/verbex-ai/verbex-speech-sdk.git</developerConnection>
+    <url>https://github.com/verbex-ai/verbex-speech-sdk</url>
+  </scm>
 
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
@@ -71,4 +95,76 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- mvn -P release deploy: the sources and javadoc jars, all signed, uploaded to Maven Central.
+         Run by .github/workflows/release.yml on a v* tag. -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.11.2</version>
+            <configuration>
+              <doclint>none</doclint>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.7</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.8.0</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
