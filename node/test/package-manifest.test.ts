@@ -55,7 +55,15 @@ describe("package manifests", () => {
   it("packing the repository root includes node/dist and nothing else of the repository", () => {
     if (!existsSync(join(here, "..", "dist", "index.js"))) throw new Error("Run `npm run build` first.");
     const out = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: join(here, "..", ".."), encoding: "utf8" });
-    const packed = JSON.parse(out); // an array up to npm 11, an object keyed by package name from npm 12
+    // npm 10 runs the root's prepare script on pack despite --ignore-scripts. The nested `npm ci`
+    // inherits --dry-run and --json, so stdout holds its output ("add <package> <version>" lines and
+    // a JSON report of its own) ahead of the pack report. The pack report is printed last and opens
+    // on a line of its own.
+    const lines = out.split("\n");
+    let start = -1;
+    for (let i = 0; i < lines.length; i++) if (lines[i] === "[" || lines[i] === "{") start = i;
+    if (start < 0) throw new Error(`npm pack printed no JSON report:\n${out}`);
+    const packed = JSON.parse(lines.slice(start).join("\n")); // an array up to npm 11, an object keyed by package name from npm 12
     const entry = Array.isArray(packed) ? packed[0] : Object.values(packed)[0];
     const paths: string[] = (entry as { files: Array<{ path: string }> }).files.map((f) => f.path);
     expect(paths).toEqual(expect.arrayContaining(["node/dist/index.js", "node/dist/index.d.ts", "node/dist/listen/index.js", "node/dist/speak/index.js"]));
