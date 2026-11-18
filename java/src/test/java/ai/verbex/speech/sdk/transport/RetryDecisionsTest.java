@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,7 +30,7 @@ class RetryDecisionsTest {
             return "timeout".equals(o.asText()) ? new ApiTimeoutException("t") : new ApiConnectionException("c");
         }
         String body = "{\"error\":{\"code\":\"" + c.get("code").asText() + "\",\"message\":\"m\"}}";
-        return Errors.fromResponse(o.asInt(), n -> null, body.getBytes());
+        return Errors.fromResponse(o.asInt(), n -> null, body.getBytes(StandardCharsets.UTF_8));
     }
 
     @TestFactory

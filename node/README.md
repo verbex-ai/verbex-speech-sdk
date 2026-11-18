@@ -300,6 +300,9 @@ wait is not taken and the error is thrown.
 
 `429 concurrency_limit` is not retried: waiting for your own work to finish is your call.
 
+`502 synthesis_failed` is not retried: the engine refused this text (for example, text in a language
+the voice does not speak) and would refuse it the same way again.
+
 ## Examples
 
 Build first (`npm run build`), then:

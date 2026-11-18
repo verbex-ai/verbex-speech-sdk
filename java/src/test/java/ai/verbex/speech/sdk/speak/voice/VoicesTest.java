@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -16,7 +17,7 @@ class VoicesTest {
 
     @Test
     void voices() {
-        List<Voice> voices = Voices.parse(R.get("voices").toString().getBytes());
+        List<Voice> voices = Voices.parse(R.get("voices").toString().getBytes(StandardCharsets.UTF_8));
         assertEquals(2, voices.size());
         assertEquals(new Voice("verbex_v1_bn", "Verbex TTS v1 · Bengali", "maria_2", "Maria", "bn", "female",
                 "warm", "https://cdn.example/maria.wav"), voices.get(0));

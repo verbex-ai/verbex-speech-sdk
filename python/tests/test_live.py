@@ -44,6 +44,8 @@ def test_live_session_at_real_time(client):
 
 
 def test_speak_one_sentence(client):
-    voice = client.speak.voices()[0]
+    # A Japanese voice for Japanese text: the first voice listed can speak another language, and
+    # the engine refuses text in a language its voice does not speak (502 synthesis_failed).
+    voice = next(v for v in client.speak.voices() if v.language == "ja")
     audio = client.speak.synthesize(model=voice.model, voice=voice.code, text="テスト", format="wav")
     assert len(audio.data) > 44

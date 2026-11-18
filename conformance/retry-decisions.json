@@ -1,5 +1,5 @@
 {
-  "description": "Whether a failed call is retried automatically (spec §8). call: get | upload_start | speak | submit. outcome: an HTTP status with code, or connection_error / timeout. A submit and a speak always carry their Idempotency-Key, so both are retried as a read is, and on 409 request_in_progress.",
+  "description": "Whether a failed call is retried automatically (spec §8). call: get | upload_start | speak | submit. outcome: an HTTP status with code, or connection_error / timeout. A submit and a speak always carry their Idempotency-Key, so both are retried as a read is, and on 409 request_in_progress. A 502 synthesis_failed is the engine refusing this text, the same way every time, so it is not retried.",
   "cases": [
     {
       "call": "get",
@@ -192,6 +192,12 @@
       "outcome": 502,
       "code": "upstream_unavailable",
       "retry": true
+    },
+    {
+      "call": "speak",
+      "outcome": 502,
+      "code": "synthesis_failed",
+      "retry": false
     },
     {
       "call": "speak",

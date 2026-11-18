@@ -334,6 +334,9 @@ and the error is thrown.
 `429 concurrency_limit`/`workspace_concurrency_limit` is not retried: wait for your own running
 work to finish.
 
+`502 synthesis_failed` is not retried: the engine refused this text (for example, text in a language
+the voice does not speak) and would refuse it the same way again.
+
 ## Examples
 
 In `src/test/java/ai/verbex/speech/sdk/examples/` (compiled with the tests; run them from your IDE

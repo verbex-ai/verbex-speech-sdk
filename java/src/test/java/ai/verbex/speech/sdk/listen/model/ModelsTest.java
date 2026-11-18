@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,7 +18,7 @@ class ModelsTest {
 
     @Test
     void models() {
-        List<SttModel> models = Models.parse(R.get("models").toString().getBytes());
+        List<SttModel> models = Models.parse(R.get("models").toString().getBytes(StandardCharsets.UTF_8));
         assertEquals(1, models.size());
         SttModel m = models.get(0);
         assertEquals("verbex_jp_stt_x1", m.model());

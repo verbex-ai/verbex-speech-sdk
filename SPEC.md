@@ -271,7 +271,7 @@ longer wait is not taken, the error is raised).
 
 | Call | Retried on |
 |---|---|
-| `GET` (models, voices, job) | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 |
+| `GET` (models, voices, job) | connection errors, timeouts, 429 `rate_limited`/`workspace_rate_limited`, 502, 503, 504 (except `502 synthesis_failed`, below) |
 | `POST /v1/listen/uploads` | same as `GET` (an unused upload expires on its own) |
 | `POST /v1/speak` | same as `GET`, and 409 `request_in_progress`, only before any audio has been received (status arrives with the first audio, and nothing is billed without audio). Every attempt carries the same `Idempotency-Key` (§5.2) |
 | `POST /v1/listen` (submit) | same as `GET`, and 409 `request_in_progress`. Safe because every submit carries its `Idempotency-Key` (§4.2): a retry after a lost answer gets the first request's receipt, never a second job |
@@ -280,6 +280,10 @@ longer wait is not taken, the error is raised).
 
 `429 concurrency_limit`/`workspace_concurrency_limit` is not retried automatically: waiting for the
 caller's own work to finish is the caller's decision.
+
+`502 synthesis_failed` is not retried either: the engine refused this text (for example, text in a
+language the voice does not speak), and it refuses it the same way every time. Retrying only makes
+more engine jobs. Other 502s, such as `upstream_unavailable`, are still retried.
 
 ## 9. Conformance
 

@@ -16,6 +16,8 @@ final class RetryPolicy {
     static final long MAX_RETRY_AFTER_SECONDS = 60;
 
     private static final Set<String> RATE_LIMITED = Set.of("rate_limited", "workspace_rate_limited");
+    /** A 5xx that fails the same way every time: the engine refused this text, not a passing fault. */
+    private static final Set<String> PERMANENT = Set.of("synthesis_failed");
 
     private RetryPolicy() {
     }
@@ -35,6 +37,9 @@ final class RetryPolicy {
         if (status == 409) {
             // A submit or a speak carries its Idempotency-Key, so waiting out the first request is safe.
             return (kind == CallKind.SUBMIT || kind == CallKind.SPEAK) && "request_in_progress".equals(code);
+        }
+        if (code != null && PERMANENT.contains(code)) {
+            return false;
         }
         return status == 502 || status == 503 || status == 504;
     }

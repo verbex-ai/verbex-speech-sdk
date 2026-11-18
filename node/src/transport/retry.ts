@@ -9,6 +9,8 @@ export type RetryCall = "get" | "upload_start" | "speak" | "submit";
 export type Outcome = number | "connection_error" | "timeout";
 
 const RATE_CODES = new Set(["rate_limited", "workspace_rate_limited"]);
+/** A 5xx that fails the same way every time: the engine refused this text, not a passing fault. */
+const PERMANENT_CODES = new Set(["synthesis_failed"]);
 
 export const BACKOFF_BASE_MS = 500;
 export const BACKOFF_CAP_MS = 8_000;
@@ -22,6 +24,7 @@ export function shouldRetry(call: RetryCall, outcome: Outcome, code?: string): b
   if ((call === "submit" || call === "speak") && outcome === 409) return code === "request_in_progress";
   if (outcome === "connection_error" || outcome === "timeout") return true;
   if (outcome === 429) return code !== undefined && RATE_CODES.has(code);
+  if (code !== undefined && PERMANENT_CODES.has(code)) return false;
   return outcome === 502 || outcome === 503 || outcome === 504;
 }
 

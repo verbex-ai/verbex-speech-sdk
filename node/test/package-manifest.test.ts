@@ -54,7 +54,13 @@ describe("package manifests", () => {
   // names the folder: without node/.npmignore the package installed from GitHub has no code in it.
   it("packing the repository root includes node/dist and nothing else of the repository", () => {
     if (!existsSync(join(here, "..", "dist", "index.js"))) throw new Error("Run `npm run build` first.");
-    const out = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: join(here, "..", ".."), encoding: "utf8" });
+    // On Windows npm is npm.cmd, a batch file, which Node runs only through a shell (since the
+    // CVE-2024-27980 fix, spawning a .cmd without one fails). The arguments are fixed, so a shell is safe.
+    const out = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
+      cwd: join(here, "..", ".."),
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    });
     // npm 10 runs the root's prepare script on pack despite --ignore-scripts. The nested `npm ci`
     // inherits --dry-run and --json, so stdout holds its output ("add <package> <version>" lines and
     // a JSON report of its own) ahead of the pack report. The pack report is printed last and opens

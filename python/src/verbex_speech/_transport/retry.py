@@ -7,6 +7,8 @@ from typing import Optional
 from ..errors import APIConnectionError, APITimeoutError
 
 RATE_LIMITS = frozenset({"rate_limited", "workspace_rate_limited"})
+# A 5xx that fails the same way every time: the engine refused this text, not a passing fault.
+PERMANENT = frozenset({"synthesis_failed"})
 MAX_RETRY_AFTER = 60
 
 
@@ -24,7 +26,7 @@ def should_retry(call: str, status: Optional[int] = None, code: Optional[str] = 
         return code in RATE_LIMITS
     if call in ("submit", "speak") and status == 409:
         return code == "request_in_progress"
-    return status in (502, 503, 504)
+    return status in (502, 503, 504) and code not in PERMANENT
 
 
 def backoff(attempt: int, retry_after: Optional[int] = None) -> Optional[float]:

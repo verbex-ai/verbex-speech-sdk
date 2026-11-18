@@ -267,6 +267,9 @@ Up to `max_retries` (default 2) automatic retries with exponential backoff, hono
 
 `429 concurrency_limit` is not retried: wait for some of your own running work to finish.
 
+`502 synthesis_failed` is not retried: the engine refused this text (for example, text in a language
+the voice does not speak) and would refuse it the same way again.
+
 ## Modules
 
 Every public name can be imported from `verbex_speech` directly. The package is split by
