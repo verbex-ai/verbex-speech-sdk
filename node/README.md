@@ -19,7 +19,7 @@ yarn add @verbex.ai/verbex-speech-sdk
 
 ### From GitHub
 
-Until the package is on the npm registry, install it from this repository. npm cannot install a
+To use a commit that is not released yet, install it from this repository. npm cannot install a
 subdirectory, so the repository root has its own `package.json`: it is this package, and its
 `prepare` script builds `node/` when npm fetches it.
 
