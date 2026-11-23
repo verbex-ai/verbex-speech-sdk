@@ -1,5 +1,5 @@
 /**
- * Text-to-speech: `client.speak`, also importable as `@verbex-ai/verbex-speech-sdk/speak`.
+ * Text-to-speech: `client.speak`, also importable as `@verbex.ai/verbex-speech-sdk/speak`.
  */
 import type { HttpClient, RequestOptions } from "../transport/http.js";
 import { openSpeakSession, type SpeakSession, type SpeakStreamOptions } from "./stream.js";

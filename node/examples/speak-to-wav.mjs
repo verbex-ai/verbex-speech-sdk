@@ -2,7 +2,7 @@
 //
 //   VERBEX_API_KEY=vbx_... VERBEX_BASE_URL=https://... node examples/speak-to-wav.mjs "こんにちは。" out.wav [model] [voice]
 import { writeFileSync } from "node:fs";
-import { VerbexSpeech } from "@verbex-ai/verbex-speech-sdk";
+import { VerbexSpeech } from "@verbex.ai/verbex-speech-sdk";
 
 const [text, out = "speech.wav", modelArg, voiceArg] = process.argv.slice(2);
 if (!text) {

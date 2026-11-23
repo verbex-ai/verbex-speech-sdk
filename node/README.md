@@ -1,4 +1,4 @@
-# @verbex-ai/verbex-speech-sdk
+# @verbex.ai/verbex-speech-sdk
 
 Node.js SDK for the Verbex Speech API: transcribe recorded files and live audio, and synthesise
 speech. It covers the API-key surface of the API; console features (usage, billing, keys) are
@@ -10,11 +10,11 @@ not reachable with an API key and are not in the SDK.
 ## Installation
 
 ```sh
-npm install @verbex-ai/verbex-speech-sdk
+npm install @verbex.ai/verbex-speech-sdk
 # or
-pnpm add @verbex-ai/verbex-speech-sdk
+pnpm add @verbex.ai/verbex-speech-sdk
 # or
-yarn add @verbex-ai/verbex-speech-sdk
+yarn add @verbex.ai/verbex-speech-sdk
 ```
 
 ### From GitHub
@@ -34,7 +34,7 @@ npm install github:verbex-ai/verbex-speech-sdk     # or github:verbex-ai/verbex-
 ```
 
 `allowScripts` matches a git dependency by its repository, not its package name, so
-`npm install-scripts approve @verbex-ai/verbex-speech-sdk` does not work for it. Add `#<commit>` to
+`npm install-scripts approve @verbex.ai/verbex-speech-sdk` does not work for it. Add `#<commit>` to
 the key to approve one commit only. npm 11 and earlier need neither setting.
 
 pnpm and Yarn can install the subdirectory directly
@@ -47,7 +47,7 @@ the browser, Verbex has a separate package, `@verbex-ai/verbex-js-sdk`.
 ## Configure
 
 ```js
-import { VerbexSpeech } from "@verbex-ai/verbex-speech-sdk";
+import { VerbexSpeech } from "@verbex.ai/verbex-speech-sdk";
 
 const client = new VerbexSpeech({
   apiKey: process.env.VERBEX_API_KEY, // default: env VERBEX_API_KEY; must start with vbx_
@@ -139,7 +139,7 @@ if (receipt.replayed) console.log("already submitted as", receipt.jobId);
 ### Webhooks
 
 ```js
-import { parseWebhook, verifyWebhook } from "@verbex-ai/verbex-speech-sdk";
+import { parseWebhook, verifyWebhook } from "@verbex.ai/verbex-speech-sdk";
 
 // rawBody must be the exact bytes received, before any JSON parsing.
 const job = parseWebhook({ apiKey, rawBody, headers: req.headers }); // throws WebhookVerificationError
@@ -316,13 +316,13 @@ node examples/speak-to-wav.mjs "こんにちは。" hello.wav
 
 ## Modules
 
-The root import `@verbex-ai/verbex-speech-sdk` exports every public name. Each product can also be imported
+The root import `@verbex.ai/verbex-speech-sdk` exports every public name. Each product can also be imported
 on its own; the classes are the same objects either way, so `instanceof` works across them.
 
 ```js
-import { VerbexSpeech, StreamError } from "@verbex-ai/verbex-speech-sdk";
-import { Listen, verifyWebhook, WaitTimeoutError } from "@verbex-ai/verbex-speech-sdk/listen";
-import { Speak, SpeakError } from "@verbex-ai/verbex-speech-sdk/speak";
+import { VerbexSpeech, StreamError } from "@verbex.ai/verbex-speech-sdk";
+import { Listen, verifyWebhook, WaitTimeoutError } from "@verbex.ai/verbex-speech-sdk/listen";
+import { Speak, SpeakError } from "@verbex.ai/verbex-speech-sdk/speak";
 ```
 
 Shared errors (`VerbexError`, `ApiError` and its subclasses, `StreamError`, ...) come from the
@@ -334,13 +334,13 @@ root. The source is laid out by responsibility:
 | `src/client.ts` | `VerbexSpeech`, the entry point with `.listen` and `.speak` |
 | `src/errors.ts` | The shared errors |
 | `src/version.ts` | `VERSION` |
-| `src/listen/index.ts` | `Listen` and the speech-to-text names (`@verbex-ai/verbex-speech-sdk/listen`) |
+| `src/listen/index.ts` | `Listen` and the speech-to-text names (`@verbex.ai/verbex-speech-sdk/listen`) |
 | `src/listen/models.ts` | Model types, `listen.models()` |
 | `src/listen/jobs.ts` | Receipt, job and segment types, `WaitTimeoutError`; submit, get, wait, transcribe |
 | `src/listen/source.ts`, `upload.ts` | Audio sources and size limits; the upload flow and `UploadError` |
 | `src/listen/stream.ts` | `ListenSession` and its events, `transcribeStream` |
 | `src/listen/webhook.ts` | `verifyWebhook`, `parseWebhook`, `WebhookVerificationError` |
-| `src/speak/index.ts` | `Speak`, `SpeakError` and the text-to-speech names (`@verbex-ai/verbex-speech-sdk/speak`) |
+| `src/speak/index.ts` | `Speak`, `SpeakError` and the text-to-speech names (`@verbex.ai/verbex-speech-sdk/speak`) |
 | `src/speak/voices.ts` | `Voice`, `speak.voices()` |
 | `src/speak/synthesis.ts` | `synthesize`, `synthesizeStream` and their result types |
 | `src/speak/stream.ts` | `SpeakSession`, `Utterance`, `SpeakResult` |

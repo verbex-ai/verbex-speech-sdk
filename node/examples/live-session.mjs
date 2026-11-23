@@ -4,7 +4,7 @@
 //   VERBEX_API_KEY=vbx_... VERBEX_BASE_URL=https://... node examples/live-session.mjs audio.raw [model] [language]
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
-import { VerbexSpeech, StreamError } from "@verbex-ai/verbex-speech-sdk";
+import { VerbexSpeech, StreamError } from "@verbex.ai/verbex-speech-sdk";
 
 const [path, model = "verbex_jp_stt_x1", language = "ja"] = process.argv.slice(2);
 if (!path) {

@@ -1,6 +1,6 @@
 /**
- * `@verbex-ai/verbex-speech-sdk`: the client and every public name. `@verbex-ai/verbex-speech-sdk/listen` and
- * `@verbex-ai/verbex-speech-sdk/speak` export each product's names on their own.
+ * `@verbex.ai/verbex-speech-sdk`: the client and every public name. `@verbex.ai/verbex-speech-sdk/listen` and
+ * `@verbex.ai/verbex-speech-sdk/speak` export each product's names on their own.
  */
 export { VerbexSpeech } from "./client.js";
 export type { ClientOptions } from "./client.js";

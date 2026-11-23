@@ -1,5 +1,5 @@
 /**
- * Speech-to-text: `client.listen`, also importable as `@verbex-ai/verbex-speech-sdk/listen`.
+ * Speech-to-text: `client.listen`, also importable as `@verbex.ai/verbex-speech-sdk/listen`.
  */
 import type { HttpClient, RequestOptions } from "../transport/http.js";
 import { Jobs, type Job, type Receipt, type Segment, type SubmitParams, type TranscribeParams, type WaitOptions } from "./jobs.js";

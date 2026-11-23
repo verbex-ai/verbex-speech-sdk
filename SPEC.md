@@ -28,7 +28,7 @@ Console-only features (usage, billing, keys, members) are out of scope: an API k
 | Language | Package | Import / module | Minimum runtime | Runtime dependencies |
 |---|---|---|---|---|
 | Python | PyPI `verbex-speech-sdk` | `verbex_speech` (flat), `.listen{,.models,.jobs,.stream,.webhook}`, `.speak{,.voices,.synthesis,.stream}`, `.errors` | Python 3.9 | `httpx`, `websockets` |
-| Node.js | npm `@verbex-ai/verbex-speech-sdk` | `@verbex-ai/verbex-speech-sdk` (everything), `@verbex-ai/verbex-speech-sdk/listen`, `@verbex-ai/verbex-speech-sdk/speak` | Node.js 18 | `ws` |
+| Node.js | npm `@verbex.ai/verbex-speech-sdk` | `@verbex.ai/verbex-speech-sdk` (everything), `@verbex.ai/verbex-speech-sdk/listen`, `@verbex.ai/verbex-speech-sdk/speak` | Node.js 18 | `ws` |
 | Java | Maven `ai.verbex:verbex-speech-sdk` | `ai.verbex.speech.sdk` (client), `.listen{,.model,.job,.stream,.webhook}`, `.speak{,.voice,.synthesis,.stream}`, `.error`, `.transport` (internal) | Java 17 | `jackson-databind` |
 
 All three are organised the same way: the client; `listen` (models, jobs, live stream, webhook);

@@ -1,7 +1,7 @@
 // Transcribe a recorded file (WAV or MP3, up to 100 MiB) and print the transcript.
 //
 //   VERBEX_API_KEY=vbx_... VERBEX_BASE_URL=https://... node examples/transcribe-file.mjs meeting.wav [model] [language]
-import { VerbexSpeech, VerbexError } from "@verbex-ai/verbex-speech-sdk";
+import { VerbexSpeech, VerbexError } from "@verbex.ai/verbex-speech-sdk";
 
 const [path, model = "verbex_jp_stt_x1", language = "ja"] = process.argv.slice(2);
 if (!path) {

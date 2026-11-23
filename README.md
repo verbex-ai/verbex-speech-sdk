@@ -7,7 +7,7 @@ separate `@verbex-ai/verbex-js-sdk`.)
 | Folder | Package | Runtime |
 |---|---|---|
 | [`python/`](python/README.md) | PyPI `verbex-speech-sdk` | Python 3.9+, sync and async |
-| [`node/`](node/README.md) | npm `@verbex-ai/verbex-speech-sdk` | Node.js 18+ (server side) |
+| [`node/`](node/README.md) | npm `@verbex.ai/verbex-speech-sdk` | Node.js 18+ (server side) |
 | [`java/`](java/README.md) | Maven `ai.verbex:verbex-speech-sdk` | Java 17+ |
 
 The root `package.json` is the Node.js package as npm installs it from GitHub
