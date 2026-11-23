@@ -1,0 +1,14 @@
+{
+  "name": "verbex-speech-sdk",
+  "owner": {
+    "name": "Verbex"
+  },
+  "description": "Agent skill for the Verbex Speech SDKs (Python, Node.js, Java).",
+  "plugins": [
+    {
+      "name": "verbex-speech-sdk",
+      "source": "./",
+      "description": "Write code with the Verbex Speech SDKs for Python, Node.js and Java."
+    }
+  ]
+}

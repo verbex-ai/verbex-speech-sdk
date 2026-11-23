@@ -1,0 +1,10 @@
+{
+  "name": "verbex-speech-sdk",
+  "description": "Write code with the Verbex Speech SDKs for Python, Node.js and Java: transcription, live transcription, text-to-speech, webhooks and errors.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Verbex"
+  },
+  "homepage": "https://github.com/verbex-ai/verbex-speech-sdk",
+  "repository": "https://github.com/verbex-ai/verbex-speech-sdk"
+}

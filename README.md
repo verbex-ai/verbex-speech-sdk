@@ -131,6 +131,32 @@ public class Example {
 A failed or cancelled job is returned, not raised: check its status and error. Each package's
 README has the other package managers, live transcription, webhooks, errors and retries.
 
+## AI coding agents
+
+[`skills/verbex-speech-sdk/`](skills/verbex-speech-sdk/SKILL.md) is an agent skill: it teaches Claude
+Code and Codex to write code with these SDKs (the calls, the rules on keys, errors and retries, and
+examples per language). Both tools read the same `SKILL.md` format.
+
+Claude Code, as a plugin from this repository:
+
+```
+/plugin install verbex-speech-sdk --marketplace verbex-ai/verbex-speech-sdk
+```
+
+On older Claude Code: `/plugin marketplace add verbex-ai/verbex-speech-sdk`, then
+`/plugin install verbex-speech-sdk@verbex-speech-sdk`.
+
+Codex, or Claude Code without plugins, by copying the folder:
+
+```sh
+git clone --depth 1 https://github.com/verbex-ai/verbex-speech-sdk /tmp/verbex-speech-sdk
+mkdir -p ~/.agents/skills                       # Codex; Claude Code: ~/.claude/skills
+cp -r /tmp/verbex-speech-sdk/skills/verbex-speech-sdk ~/.agents/skills/
+```
+
+For one project only, copy it to `.agents/skills/` (Codex) or `.claude/skills/` (Claude Code) in
+that project instead. Update the skill's version numbers with each SDK release.
+
 The root `package.json` is the Node.js package as npm installs it from GitHub
 (`npm install github:verbex-ai/verbex-speech-sdk`): it builds `node/` on `prepare`. It must
 describe the same package as `node/package.json`, which a test in `node/` checks. See
