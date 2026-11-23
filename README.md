@@ -10,12 +10,75 @@ separate `@verbex-ai/verbex-js-sdk`.)
 | [`node/`](node/README.md) | npm [`@verbex.ai/verbex-speech-sdk`](https://www.npmjs.com/package/@verbex.ai/verbex-speech-sdk) | 0.1.0 | Node.js 18+ (server side) |
 | [`java/`](java/README.md) | Maven Central [`ai.verbex:verbex-speech-sdk`](https://central.sonatype.com/artifact/ai.verbex/verbex-speech-sdk) | 0.1.1 | Java 17+ |
 
-## Installation
+## Usage
+
+Each example installs the package from its registry, transcribes a file, transcribes audio at a
+URL, and speaks one sentence. Set the API key (it starts with `vbx_`) and the API address first:
+
+```sh
+export VERBEX_API_KEY=vbx_...
+export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai
+```
+
+### Python (PyPI)
 
 ```sh
 pip install verbex-speech-sdk
+```
+
+```python
+from verbex_speech import VerbexSpeech
+
+with VerbexSpeech() as client:
+    # A file: up to 1 MiB in the request, up to 100 MiB through the upload flow.
+    job = client.listen.transcribe("call.wav", model="verbex_jp_stt_x1", language="ja")
+    print(job.status, job.text)
+
+    # Audio the API fetches from an https URL.
+    job = client.listen.transcribe(url="https://storage.example.com/call.wav",
+                                   model="verbex_jp_stt_x1", language="ja")
+    print(job.status, job.text)
+
+    # Text-to-speech.
+    voice = next(v for v in client.speak.voices() if v.language == "ja")
+    audio = client.speak.synthesize(model=voice.model, voice=voice.code, text="こんにちは", format="wav")
+    with open("hello.wav", "wb") as f:
+        f.write(audio.data)
+```
+
+### Node.js (npm)
+
+```sh
 npm install @verbex.ai/verbex-speech-sdk
 ```
+
+```js
+import { writeFile } from "node:fs/promises";
+import { VerbexSpeech } from "@verbex.ai/verbex-speech-sdk";
+
+const client = new VerbexSpeech(); // reads VERBEX_API_KEY and VERBEX_BASE_URL
+
+// A file: up to 1 MiB in the request, up to 100 MiB through the upload flow.
+let job = await client.listen.transcribe({ source: "call.wav", model: "verbex_jp_stt_x1", language: "ja" });
+console.log(job.status, job.text);
+
+// Audio the API fetches from an https URL.
+job = await client.listen.transcribe({
+  url: "https://storage.example.com/call.wav",
+  model: "verbex_jp_stt_x1",
+  language: "ja",
+});
+console.log(job.status, job.text);
+
+// Text-to-speech.
+const voice = (await client.speak.voices()).find((v) => v.language === "ja");
+const { audio } = await client.speak.synthesize({ model: voice.model, voice: voice.code, text: "こんにちは", format: "wav" });
+await writeFile("hello.wav", audio);
+```
+
+### Java (Maven Central)
+
+Maven:
 
 ```xml
 <dependency>
@@ -25,7 +88,48 @@ npm install @verbex.ai/verbex-speech-sdk
 </dependency>
 ```
 
-Each package's README has the other package managers, a quick start and the full API.
+Gradle: `implementation("ai.verbex:verbex-speech-sdk:0.1.1")`
+
+```java
+import ai.verbex.speech.sdk.VerbexSpeech;
+import ai.verbex.speech.sdk.listen.job.Job;
+import ai.verbex.speech.sdk.listen.job.TranscribeRequest;
+import ai.verbex.speech.sdk.speak.AudioFormat;
+import ai.verbex.speech.sdk.speak.SpeakRequest;
+import ai.verbex.speech.sdk.speak.synthesis.SpeakAudio;
+import ai.verbex.speech.sdk.speak.voice.Voice;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Example {
+    public static void main(String[] args) throws Exception {
+        VerbexSpeech client = VerbexSpeech.builder().build(); // reads VERBEX_API_KEY and VERBEX_BASE_URL
+
+        // A file: up to 1 MiB in the request, up to 100 MiB through the upload flow.
+        Job job = client.listen().transcribe(Path.of("call.wav"), "verbex_jp_stt_x1", "ja");
+        System.out.println(job.status() + " " + job.text());
+
+        // Audio the API fetches from an https URL.
+        job = client.listen().transcribe(TranscribeRequest.builder()
+                .url("https://storage.example.com/call.wav")
+                .model("verbex_jp_stt_x1").language("ja")
+                .build());
+        System.out.println(job.status() + " " + job.text());
+
+        // Text-to-speech.
+        Voice voice = client.speak().voices().stream()
+                .filter(v -> v.language().equals("ja")).findFirst().orElseThrow();
+        SpeakAudio audio = client.speak().synthesize(SpeakRequest.builder()
+                .model(voice.model()).voice(voice.code()).text("こんにちは")
+                .format(AudioFormat.WAV)
+                .build());
+        Files.write(Path.of("hello.wav"), audio.audio());
+    }
+}
+```
+
+A failed or cancelled job is returned, not raised: check its status and error. Each package's
+README has the other package managers, live transcription, webhooks, errors and retries.
 
 The root `package.json` is the Node.js package as npm installs it from GitHub
 (`npm install github:verbex-ai/verbex-speech-sdk`): it builds `node/` on `prepare`. It must
