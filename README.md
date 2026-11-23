@@ -133,29 +133,63 @@ README has the other package managers, live transcription, webhooks, errors and 
 
 ## AI coding agents
 
-[`skills/verbex-speech-sdk/`](skills/verbex-speech-sdk/SKILL.md) is an agent skill: it teaches Claude
-Code and Codex to write code with these SDKs (the calls, the rules on keys, errors and retries, and
-examples per language). Both tools read the same `SKILL.md` format.
+[`skills/verbex-speech-sdk/`](skills/verbex-speech-sdk/SKILL.md) is an agent skill. It teaches
+Claude Code and Codex to write code with these SDKs: which package to install, the calls, the rules
+on keys, errors and retries, and examples for each language. Both tools read the same skill.
+
+### Install
 
 Claude Code, as a plugin from this repository:
 
 ```
-/plugin install verbex-speech-sdk --marketplace verbex-ai/verbex-speech-sdk
+/plugin marketplace add verbex-ai/verbex-speech-sdk
+/plugin install verbex-speech-sdk@verbex-speech-sdk
 ```
 
-On older Claude Code: `/plugin marketplace add verbex-ai/verbex-speech-sdk`, then
-`/plugin install verbex-speech-sdk@verbex-speech-sdk`.
+Codex, as a plugin from this repository:
 
-Codex, or Claude Code without plugins, by copying the folder:
+```sh
+codex plugin marketplace add verbex-ai/verbex-speech-sdk
+codex plugin add verbex-speech-sdk@verbex-speech-sdk
+```
+
+Either tool without plugins: copy the skill folder into the tool's skills folder.
 
 ```sh
 git clone --depth 1 https://github.com/verbex-ai/verbex-speech-sdk /tmp/verbex-speech-sdk
-mkdir -p ~/.agents/skills                       # Codex; Claude Code: ~/.claude/skills
-cp -r /tmp/verbex-speech-sdk/skills/verbex-speech-sdk ~/.agents/skills/
+cp -r /tmp/verbex-speech-sdk/skills/verbex-speech-sdk ~/.agents/skills/    # Codex
+cp -r /tmp/verbex-speech-sdk/skills/verbex-speech-sdk ~/.claude/skills/    # Claude Code
 ```
 
-For one project only, copy it to `.agents/skills/` (Codex) or `.claude/skills/` (Claude Code) in
-that project instead. Update the skill's version numbers with each SDK release.
+For one project only, use the project's `.agents/skills/` (Codex) or `.claude/skills/` (Claude
+Code) instead. Restart the tool if the skill does not show up.
+
+To update: `/plugin marketplace update verbex-speech-sdk` (Claude Code),
+`codex plugin marketplace upgrade verbex-speech-sdk` (Codex), or copy the folder again.
+
+### Use
+
+Ask for what you want in your project. The skill is picked up when the request is about Verbex,
+speech-to-text or text-to-speech with these SDKs. For example:
+
+- "Add a function that transcribes an uploaded WAV file with Verbex and returns the text."
+- "Transcribe the audio at this signed URL with Verbex in our Node.js service, with a webhook."
+- "Add a Spring endpoint that turns text into a WAV file with the Verbex Java SDK."
+- "Verify Verbex webhooks in our FastAPI app."
+- "Stream microphone audio to Verbex live transcription and print the segments."
+- "Handle Verbex errors: tell the user to top up on 402, log the request id otherwise."
+
+To call the skill by name:
+
+| Tool | How |
+|---|---|
+| Claude Code | `/verbex-speech-sdk:verbex-speech-sdk` as a plugin, `/verbex-speech-sdk` when copied |
+| Codex | `$verbex-speech-sdk` in the prompt, or pick it from `/skills` |
+
+What the agent does with it: installs the right package for your project's language, reads the
+key from `VERBEX_API_KEY` and `VERBEX_BASE_URL` (never in code), uses one `transcribe` call for any
+file size or a URL, checks the job's status instead of expecting an exception, leaves retries to
+the SDK, and branches on error codes. It keeps the API key on the server side.
 
 The root `package.json` is the Node.js package as npm installs it from GitHub
 (`npm install github:verbex-ai/verbex-speech-sdk`): it builds `node/` on `prepare`. It must

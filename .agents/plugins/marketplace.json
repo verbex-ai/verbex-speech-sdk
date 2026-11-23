@@ -1,0 +1,12 @@
+{
+  "name": "verbex-speech-sdk",
+  "interface": { "displayName": "Verbex Speech SDK" },
+  "plugins": [
+    {
+      "name": "verbex-speech-sdk",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Developer Tools"
+    }
+  ]
+}

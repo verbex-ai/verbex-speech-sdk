@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "verbex-speech-sdk",
+  "version": "0.1.0",
+  "description": "Write code with the Verbex Speech SDKs for Python, Node.js and Java: transcription, live transcription, text-to-speech, webhooks and errors.",
+  "author": { "name": "Verbex" },
+  "homepage": "https://github.com/verbex-ai/verbex-speech-sdk",
+  "repository": "https://github.com/verbex-ai/verbex-speech-sdk",
+  "keywords": ["speech", "speech-to-text", "text-to-speech", "sdk", "verbex"]
+}
