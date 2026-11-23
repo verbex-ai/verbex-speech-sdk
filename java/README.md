@@ -18,20 +18,20 @@ Maven:
 <dependency>
   <groupId>ai.verbex</groupId>
   <artifactId>verbex-speech-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
 Gradle (Kotlin DSL):
 
 ```kotlin
-implementation("ai.verbex:verbex-speech-sdk:0.1.0")
+implementation("ai.verbex:verbex-speech-sdk:0.1.1")
 ```
 
 Gradle (Groovy):
 
 ```groovy
-implementation 'ai.verbex:verbex-speech-sdk:0.1.0'
+implementation 'ai.verbex:verbex-speech-sdk:0.1.1'
 ```
 
 Build from source: `mvn install` in this directory (installs the version in `pom.xml` into your local
