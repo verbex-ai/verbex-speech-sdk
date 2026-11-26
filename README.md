@@ -6,9 +6,9 @@ separate `@verbex-ai/verbex-js-sdk`.)
 
 | Folder | Package | Latest | Runtime |
 |---|---|---|---|
-| [`python/`](python/README.md) | PyPI [`verbex-speech-sdk`](https://pypi.org/project/verbex-speech-sdk/) | 0.1.0 | Python 3.9+, sync and async |
-| [`node/`](node/README.md) | npm [`@verbex.ai/verbex-speech-sdk`](https://www.npmjs.com/package/@verbex.ai/verbex-speech-sdk) | 0.1.0 | Node.js 18+ (server side) |
-| [`java/`](java/README.md) | Maven Central [`ai.verbex:verbex-speech-sdk`](https://central.sonatype.com/artifact/ai.verbex/verbex-speech-sdk) | 0.1.1 | Java 17+ |
+| [`python/`](python/README.md) | PyPI [`verbex-speech-sdk`](https://pypi.org/project/verbex-speech-sdk/) | 0.1.1 | Python 3.9+, sync and async |
+| [`node/`](node/README.md) | npm [`@verbex.ai/verbex-speech-sdk`](https://www.npmjs.com/package/@verbex.ai/verbex-speech-sdk) | 0.1.1 | Node.js 18+ (server side) |
+| [`java/`](java/README.md) | Maven Central [`ai.verbex:verbex-speech-sdk`](https://central.sonatype.com/artifact/ai.verbex/verbex-speech-sdk) | 0.1.2 | Java 17+ |
 
 ## Usage
 
@@ -85,11 +85,11 @@ Maven:
 <dependency>
   <groupId>ai.verbex</groupId>
   <artifactId>verbex-speech-sdk</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
 </dependency>
 ```
 
-Gradle: `implementation("ai.verbex:verbex-speech-sdk:0.1.1")`
+Gradle: `implementation("ai.verbex:verbex-speech-sdk:0.1.2")`
 
 ```java
 import ai.verbex.speech.sdk.VerbexSpeech;

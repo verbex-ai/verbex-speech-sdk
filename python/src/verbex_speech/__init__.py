@@ -3,7 +3,7 @@
 Modules: :mod:`.client` (the entry points), :mod:`.errors` (the shared errors), :mod:`.listen`
 (speech-to-text) and :mod:`.speak` (text-to-speech). Every public name is also importable from here.
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .client import AsyncVerbexSpeech, VerbexSpeech  # noqa: E402
 from .errors import (APIConnectionError, APIError, APITimeoutError, AuthenticationError,  # noqa: E402

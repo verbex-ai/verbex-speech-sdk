@@ -4,11 +4,11 @@
 <dependency>
   <groupId>ai.verbex</groupId>
   <artifactId>verbex-speech-sdk</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
 </dependency>
 ```
 
-Gradle: `implementation("ai.verbex:verbex-speech-sdk:0.1.1")`. Java 17 or later. All calls are
+Gradle: `implementation("ai.verbex:verbex-speech-sdk:0.1.2")`. Java 17 or later. All calls are
 synchronous; the client is thread-safe, so build one and share it.
 
 ## Client

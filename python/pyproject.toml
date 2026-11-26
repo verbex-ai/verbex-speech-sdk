@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "verbex-speech-sdk"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python SDK for the Verbex Speech API: speech-to-text and text-to-speech."
 readme = "README.md"
 requires-python = ">=3.9"

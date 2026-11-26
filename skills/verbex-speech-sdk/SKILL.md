@@ -13,9 +13,9 @@ idempotency keys and webhook signatures for you.
 
 | Language | Install | Version | Reference |
 |---|---|---|---|
-| Python 3.9+ | `pip install verbex-speech-sdk` (import `verbex_speech`) | 0.1.0 | [python.md](python.md) |
-| Node.js 18+ (server side, ESM) | `npm install @verbex.ai/verbex-speech-sdk` | 0.1.0 | [node.md](node.md) |
-| Java 17+ | Maven `ai.verbex:verbex-speech-sdk` | 0.1.1 | [java.md](java.md) |
+| Python 3.9+ | `pip install verbex-speech-sdk` (import `verbex_speech`) | 0.1.1 | [python.md](python.md) |
+| Node.js 18+ (server side, ESM) | `npm install @verbex.ai/verbex-speech-sdk` | 0.1.1 | [node.md](node.md) |
+| Java 17+ | Maven `ai.verbex:verbex-speech-sdk` | 0.1.2 | [java.md](java.md) |
 
 Use the language of the project you are working in. Read only that language's reference file.
 If a newer version is published, prefer it; the calls below stay the same within 0.x unless its
