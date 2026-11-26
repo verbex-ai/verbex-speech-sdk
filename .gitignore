@@ -62,3 +62,8 @@ htmlcov/
 # Root manifest (the package npm installs from GitHub)
 /node_modules/
 /package-lock.json
+
+# Sample clients
+sample-client/node/node_modules/
+sample-client/node/package-lock.json
+sample-client/java/target/

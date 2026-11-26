@@ -165,6 +165,9 @@ curl -sS -X POST "$API/v1/speak" -H "Authorization: Token $VERBEX_API_KEY" \
 A file over 1 MiB, live transcription and streaming speech need more than one call; the SDKs do
 that for you.
 
+Runnable versions of these examples, each installing its package from the registry, are in
+[`sample-client/`](sample-client/README.md).
+
 ## AI coding agents
 
 [`skills/verbex-speech-sdk/`](skills/verbex-speech-sdk/SKILL.md) is an agent skill. It teaches

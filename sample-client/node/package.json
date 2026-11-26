@@ -1,0 +1,10 @@
+{
+  "name": "verbex-speech-sample-client",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node sample.mjs" },
+  "dependencies": {
+    "@verbex.ai/verbex-speech-sdk": "0.1.2"
+  }
+}
