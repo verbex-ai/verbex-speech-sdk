@@ -132,6 +132,39 @@ public class Example {
 A failed or cancelled job is returned, not raised: check its status and error. Each package's
 README has the other package managers, live transcription, webhooks, errors and retries.
 
+### HTTP (curl)
+
+The same calls without an SDK. Every request carries the key as `Authorization: Token <key>`.
+
+```sh
+API=https://jp-speech-api.verbex.ai
+
+# Models and voices your workspace can use.
+curl -sS "$API/v1/listen/models" -H "Authorization: Token $VERBEX_API_KEY"
+curl -sS "$API/v1/speak/voices"  -H "Authorization: Token $VERBEX_API_KEY"
+
+# A file of up to 1 MiB (WAV or MP3). Answers 202 with a job_id.
+curl -sS -X POST "$API/v1/listen" -H "Authorization: Token $VERBEX_API_KEY" \
+  -F "file=@call.wav" -F "model=verbex_jp_stt_x1" -F "language=ja"
+
+# Audio the API fetches from an https URL.
+curl -sS -X POST "$API/v1/listen" -H "Authorization: Token $VERBEX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://storage.example.com/call.wav", "model": "verbex_jp_stt_x1", "language": "ja"}'
+
+# Poll the job until its status is final; the transcript is in "text".
+curl -sS "$API/v1/listen/<job_id>" -H "Authorization: Token $VERBEX_API_KEY"
+
+# Text-to-speech: the response body is the audio. Take model and voice from /v1/speak/voices.
+curl -sS -X POST "$API/v1/speak" -H "Authorization: Token $VERBEX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "<model>", "voice": "<voice>", "text": "こんにちは", "format": "wav"}' \
+  -o hello.wav
+```
+
+A file over 1 MiB, live transcription and streaming speech need more than one call; the SDKs do
+that for you.
+
 ## AI coding agents
 
 [`skills/verbex-speech-sdk/`](skills/verbex-speech-sdk/SKILL.md) is an agent skill. It teaches
