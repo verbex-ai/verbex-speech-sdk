@@ -4,7 +4,8 @@ import { inspect } from "node:util";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ServerResponse } from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
+import type { AddressInfo } from "node:net";
 import { BadRequestError, UploadError, ValidationError, UPLOAD_MAX_BYTES } from "../../src/index.js";
 import { TEST_KEY, apiError, fakeClock, fixture, json, startHttp, testClient, type RecordedRequest, type TestServer } from "../helpers.js";
 
@@ -20,13 +21,13 @@ afterEach(async () => {
 type Step = (req: RecordedRequest, res: ServerResponse) => unknown;
 
 /** One server plays both the API and the storage service. */
-async function start(opts: { put?: Step; submit?: Step } = {}): Promise<TestServer> {
+async function start(opts: { put?: Step; submit?: Step; storageUrl?: string } = {}): Promise<TestServer> {
   const s = await startHttp((req, res) => {
     if (req.method === "POST" && req.path === "/v1/listen/uploads") {
       const size = JSON.parse(req.body.toString()).size;
       return json(res, 201, {
         ...r.upload_started,
-        upload_url: `${s.url}/storage/bucket/jobs/uploads/7f3c/audio?${SECRET}`,
+        upload_url: `${opts.storageUrl ?? s.url}/storage/bucket/jobs/uploads/7f3c/audio?${SECRET}`,
         headers: { ...r.upload_started.headers, "x-goog-content-length-range": `${size},${size}` },
       });
     }
@@ -139,6 +140,36 @@ describe("upload flow (files over 1 MiB)", () => {
     expect(err.message).toMatch(/already used/i);
     assertNoSecrets(err);
     expect(server!.requests.map((q) => q.method + " " + q.path.split("/")[1])).toEqual(["POST v1", "PUT storage"]);
+  });
+
+  it("reports storage's answer when it answers and closes before the body is out", async () => {
+    // Storage may answer before it has the whole body and close the connection. The request then
+    // closes before it finishes, which the stream pipeline reports as ERR_STREAM_PREMATURE_CLOSE.
+    // Storage's answer, not that, is the result: a 412 stays a 412.
+    const storage: Server = createServer((req, res) => {
+      req.once("data", () => {
+        res.writeHead(412, { Connection: "close" });
+        res.end();
+      });
+    });
+    await new Promise<void>((resolve) => storage.listen(0, "127.0.0.1", resolve));
+    try {
+      server = await start({ storageUrl: `http://127.0.0.1:${(storage.address() as AddressInfo).port}` });
+      const data = bigAudio();
+      // The rest of the body waits until storage has answered and closed.
+      const body = Readable.from((async function* () {
+        yield data.subarray(0, 64 * 1024);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        yield data.subarray(64 * 1024);
+      })());
+      const err: any = await testClient(server.url).listen.submit({ source: body, size: BIG, model: "m", language: "ja" }).catch((e) => e);
+      expect(err).toBeInstanceOf(UploadError);
+      expect(err.status).toBe(412);
+      assertNoSecrets(err);
+    } finally {
+      storage.closeAllConnections();
+      await new Promise<void>((resolve) => storage.close(() => resolve()));
+    }
   });
 
   it("never retries the PUT", async () => {

@@ -1,7 +1,7 @@
 import { request as httpRequest, type ClientRequest, type IncomingMessage } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { Readable, Transform } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { finished, pipeline } from "node:stream/promises";
 import { VerbexError } from "../errors.js";
 import { obj, optNum, optStr, str } from "../transport/json.js";
 
@@ -72,8 +72,14 @@ export async function putUpload(upload: UploadStarted, body: Readable | Buffer, 
     socket.once("close", () => clearTimeout(connectTimer));
   });
 
+  // Storage may answer, and close, before the whole body is out: a refusal on the headers alone.
+  // Its answer then explains the failure better than the broken write does.
+  let answered: IncomingMessage | undefined;
   const response = new Promise<IncomingMessage>((resolve, reject) => {
-    req.once("response", resolve);
+    req.once("response", (res: IncomingMessage) => {
+      answered = res;
+      resolve(res);
+    });
     req.once("error", reject);
   });
   // Seen by the awaits below; this only stops an unhandled rejection while the body is sent.
@@ -94,15 +100,16 @@ export async function putUpload(upload: UploadStarted, body: Readable | Buffer, 
           done(sent === size ? null : new SizeMismatch());
         },
       });
-      await pipeline(body, counter, req);
+      try {
+        await pipeline(body, counter, req);
+      } catch (err) {
+        if (!answered) throw err;
+      }
     }
-    const res = await response;
+    const res = answered ?? (await response);
     res.resume();
-    await new Promise<void>((resolve) => {
-      res.once("end", resolve);
-      res.once("error", () => resolve());
-      res.once("close", () => resolve());
-    });
+    // finished() also settles for a response that already ended while the body was going out.
+    await finished(res).catch(() => undefined);
     const status = res.statusCode ?? 0;
     if (status < 200 || status >= 300) {
       throw failure(
