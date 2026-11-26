@@ -1,6 +1,6 @@
 {
   "name": "@verbex.ai/verbex-speech-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Node.js SDK for the Verbex Speech API: transcription (files and live) and speech synthesis.",
   "type": "module",
   "main": "./node/dist/index.js",

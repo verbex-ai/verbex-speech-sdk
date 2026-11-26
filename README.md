@@ -7,7 +7,7 @@ separate `@verbex-ai/verbex-js-sdk`.)
 | Folder | Package | Latest | Runtime |
 |---|---|---|---|
 | [`python/`](python/README.md) | PyPI [`verbex-speech-sdk`](https://pypi.org/project/verbex-speech-sdk/) | 0.1.1 | Python 3.9+, sync and async |
-| [`node/`](node/README.md) | npm [`@verbex.ai/verbex-speech-sdk`](https://www.npmjs.com/package/@verbex.ai/verbex-speech-sdk) | 0.1.1 | Node.js 18+ (server side) |
+| [`node/`](node/README.md) | npm [`@verbex.ai/verbex-speech-sdk`](https://www.npmjs.com/package/@verbex.ai/verbex-speech-sdk) | 0.1.2 | Node.js 18+ (server side) |
 | [`java/`](java/README.md) | Maven Central [`ai.verbex:verbex-speech-sdk`](https://central.sonatype.com/artifact/ai.verbex/verbex-speech-sdk) | 0.1.2 | Java 17+ |
 
 ## Usage

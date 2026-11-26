@@ -105,8 +105,8 @@ describe("request headers", () => {
     expect(server.requests[0].headers["x-trace-id"]).toBe("6f1c2a3e-9b7d-4c1e-8a2f-0d5e6b7c8d9e");
   });
 
-  it("is version 0.1.1", () => {
-    expect(VERSION).toBe("0.1.1");
+  it("is version 0.1.2", () => {
+    expect(VERSION).toBe("0.1.2");
   });
 });
 
