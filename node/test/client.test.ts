@@ -45,10 +45,13 @@ describe("construction", () => {
     }
   });
 
-  it("refuses a missing or invalid base url", () => {
+  it("defaults the base url to production", () => {
     withEnv({ VERBEX_BASE_URL: undefined }, () => {
-      expect(() => new VerbexSpeech({ apiKey: TEST_KEY })).toThrow(ConfigurationError);
+      expect(new VerbexSpeech({ apiKey: TEST_KEY }).baseUrl).toBe("https://jp-speech-api.verbex.ai");
     });
+  });
+
+  it("refuses an invalid base url", () => {
     expect(() => new VerbexSpeech({ apiKey: TEST_KEY, baseUrl: "not a url" })).toThrow(ConfigurationError);
     expect(() => new VerbexSpeech({ apiKey: TEST_KEY, baseUrl: "ftp://example.com" })).toThrow(ConfigurationError);
   });

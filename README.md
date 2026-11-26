@@ -13,11 +13,12 @@ separate `@verbex-ai/verbex-js-sdk`.)
 ## Usage
 
 Each example installs the package from its registry, transcribes a file, transcribes audio at a
-URL, and speaks one sentence. Set the API key (it starts with `vbx_`) and the API address first:
+URL, and speaks one sentence. Set the API key (it starts with `vbx_`) first. The SDKs call
+the production API, `https://jp-speech-api.verbex.ai`, unless `VERBEX_BASE_URL` names another:
 
 ```sh
 export VERBEX_API_KEY=vbx_...
-export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai
+# export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai   # stage only
 ```
 
 ### Python (PyPI)
@@ -56,7 +57,7 @@ npm install @verbex.ai/verbex-speech-sdk
 import { writeFile } from "node:fs/promises";
 import { VerbexSpeech } from "@verbex.ai/verbex-speech-sdk";
 
-const client = new VerbexSpeech(); // reads VERBEX_API_KEY and VERBEX_BASE_URL
+const client = new VerbexSpeech(); // reads VERBEX_API_KEY, and VERBEX_BASE_URL if set
 
 // A file: up to 1 MiB in the request, up to 100 MiB through the upload flow.
 let job = await client.listen.transcribe({ source: "call.wav", model: "verbex_jp_stt_x1", language: "ja" });
@@ -103,7 +104,7 @@ import java.nio.file.Path;
 
 public class Example {
     public static void main(String[] args) throws Exception {
-        VerbexSpeech client = VerbexSpeech.builder().build(); // reads VERBEX_API_KEY and VERBEX_BASE_URL
+        VerbexSpeech client = VerbexSpeech.builder().build(); // reads VERBEX_API_KEY, and VERBEX_BASE_URL if set
 
         // A file: up to 1 MiB in the request, up to 100 MiB through the upload flow.
         Job job = client.listen().transcribe(Path.of("call.wav"), "verbex_jp_stt_x1", "ja");

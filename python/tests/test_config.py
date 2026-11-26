@@ -6,17 +6,21 @@ from verbex_speech import ConfigurationError, VerbexSpeech, __version__
 from .conftest import BASE, KEY
 
 
-def test_key_and_base_url_are_required(monkeypatch):
+def test_key_is_required_and_base_url_must_be_http(monkeypatch):
     monkeypatch.delenv("VERBEX_API_KEY", raising=False)
     monkeypatch.delenv("VERBEX_BASE_URL", raising=False)
     with pytest.raises(ConfigurationError):
         VerbexSpeech(base_url=BASE)
     with pytest.raises(ConfigurationError):
-        VerbexSpeech(api_key=KEY)
-    with pytest.raises(ConfigurationError):
         VerbexSpeech(api_key="not-a-key", base_url=BASE)
     with pytest.raises(ConfigurationError):
         VerbexSpeech(api_key=KEY, base_url="ftp://x")
+
+
+def test_base_url_defaults_to_production(monkeypatch):
+    monkeypatch.delenv("VERBEX_BASE_URL", raising=False)
+    client = VerbexSpeech(api_key=KEY)
+    assert client.base_url == "https://jp-speech-api.verbex.ai"
 
 
 def test_environment_fallbacks(monkeypatch):

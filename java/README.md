@@ -71,15 +71,16 @@ import ai.verbex.speech.sdk.speak.*;
 
 VerbexSpeech client = VerbexSpeech.builder()
         .apiKey("vbx_...")                                  // default: env VERBEX_API_KEY
-        .baseUrl("https://speech-api-stage.verbex.ai")      // default: env VERBEX_BASE_URL
+        .baseUrl("https://speech-api-stage.verbex.ai")      // optional; default: env VERBEX_BASE_URL, else production
         .timeout(Duration.ofSeconds(30))                    // default 30 s per HTTP call
         .maxRetries(2)                                      // default 2; 0 turns retries off
         .userAgentSuffix("my-app/1.4")                      // optional
         .build();
 ```
 
-A missing or malformed key or base URL throws `ConfigurationException` from `build()`. There is no
-built-in base URL. A trailing slash is ignored; WebSockets use the same host with `ws`/`wss`.
+A missing or malformed key, or a malformed base URL, throws `ConfigurationException` from `build()`.
+With no `baseUrl(...)` and no `VERBEX_BASE_URL`, the client calls the production API,
+`https://jp-speech-api.verbex.ai` (`VerbexSpeech.DEFAULT_BASE_URL`). A trailing slash is ignored; WebSockets use the same host with `ws`/`wss`.
 
 Every request carries `Authorization: Token <key>`, `User-Agent: verbex-speech-java/<version>` and a
 fresh `X-Trace-Id` (a UUID). `TranscribeRequest` and `SpeakRequest` accept your own `traceId(...)`.

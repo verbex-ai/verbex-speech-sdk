@@ -3,7 +3,7 @@ import sys
 
 from verbex_speech import VerbexSpeech
 
-with VerbexSpeech() as client:  # VERBEX_API_KEY and VERBEX_BASE_URL from the environment
+with VerbexSpeech() as client:  # VERBEX_API_KEY, and VERBEX_BASE_URL if set, from the environment
     job = client.listen.transcribe(sys.argv[1], model="verbex_jp_stt_x1", language="ja")
     if not job.completed:
         sys.exit(f"{job.status}: {job.error.code if job.error else ''}")

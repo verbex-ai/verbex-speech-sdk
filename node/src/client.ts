@@ -5,10 +5,13 @@ import { Listen } from "./listen/index.js";
 import { Speak } from "./speak/index.js";
 import { VERSION } from "./version.js";
 
+/** The production API, used when neither `baseUrl` nor `VERBEX_BASE_URL` is given. */
+export const DEFAULT_BASE_URL = "https://jp-speech-api.verbex.ai";
+
 export interface ClientOptions {
   /** Default: env `VERBEX_API_KEY`. Must start with `vbx_`. */
   apiKey?: string;
-  /** Default: env `VERBEX_BASE_URL`. A trailing slash is ignored. WebSockets use the same host. */
+  /** Default: env `VERBEX_BASE_URL`, else the production API (`DEFAULT_BASE_URL`). A trailing slash is ignored. WebSockets use the same host. */
   baseUrl?: string;
   /** Per HTTP call, except where a call's own default is longer. Default 30 000 ms. */
   timeoutMs?: number;
@@ -43,8 +46,8 @@ export class VerbexSpeech {
     if (!apiKey) throw new ConfigurationError("No API key: pass `apiKey` or set VERBEX_API_KEY.");
     if (typeof apiKey !== "string" || !apiKey.startsWith("vbx_")) throw new ConfigurationError("The API key must start with vbx_.");
 
-    const rawBase = opts.baseUrl ?? process.env.VERBEX_BASE_URL;
-    if (!rawBase) throw new ConfigurationError("No base URL: pass `baseUrl` or set VERBEX_BASE_URL.");
+    const rawBase = opts.baseUrl ?? (process.env.VERBEX_BASE_URL || DEFAULT_BASE_URL);
+    if (!rawBase) throw new ConfigurationError("The base URL is empty: pass an http(s) URL, or leave it out.");
     let parsed: URL;
     try {
       parsed = new URL(rawBase);

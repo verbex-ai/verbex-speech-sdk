@@ -11,7 +11,7 @@ Imported as `verbex_speech`. Every public name can be imported from `verbex_spee
 ```python
 from verbex_speech import VerbexSpeech
 
-with VerbexSpeech() as client:       # reads VERBEX_API_KEY and VERBEX_BASE_URL
+with VerbexSpeech() as client:       # reads VERBEX_API_KEY, and VERBEX_BASE_URL if set
     ...
 # or VerbexSpeech(api_key=..., base_url=..., max_retries=2)
 ```

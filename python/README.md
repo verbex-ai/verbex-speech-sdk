@@ -26,11 +26,12 @@ edit the SDK as you use it).
 ## Quick start
 
 1. Create an API key in the customer console (it starts with `vbx_`).
-2. Tell the SDK the key and the API address:
+2. Tell the SDK the key. It calls the production API, `https://jp-speech-api.verbex.ai`, unless
+   `VERBEX_BASE_URL` names another address:
 
    ```
    export VERBEX_API_KEY=vbx_...
-   export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai
+   # export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai   # stage only
    ```
 
 3. Pick a model and a voice your workspace can use:
@@ -78,7 +79,7 @@ environment, or from the constructor:
 
 ```
 export VERBEX_API_KEY=vbx_...
-export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai
+# export VERBEX_BASE_URL=https://speech-api-stage.verbex.ai   # optional; default https://jp-speech-api.verbex.ai
 ```
 
 ```python
@@ -86,6 +87,9 @@ from verbex_speech import VerbexSpeech
 
 client = VerbexSpeech()                       # or VerbexSpeech(api_key=..., base_url=...)
 ```
+
+The base URL is `base_url`, else `VERBEX_BASE_URL`, else the production API
+`https://jp-speech-api.verbex.ai`. A malformed one raises `ConfigurationError`.
 
 Keep the key secret: it is never logged by the SDK and never sent anywhere but the API.
 

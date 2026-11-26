@@ -45,7 +45,7 @@ Constructed with:
 | Option | Default | Notes |
 |---|---|---|
 | `api_key` / `apiKey` | env `VERBEX_API_KEY` | Required; a missing key is a configuration error at construction, never a request that fails later. Must start with `vbx_` |
-| `base_url` / `baseUrl` | env `VERBEX_BASE_URL` | Required. No built-in default: the production address is not fixed yet, and a wrong default is worse than none. A trailing slash is ignored. WebSockets use the same host with `ws`/`wss` |
+| `base_url` / `baseUrl` | env `VERBEX_BASE_URL`, else `https://jp-speech-api.verbex.ai` | The production API when neither is given. A malformed value is a configuration error at construction. A trailing slash is ignored. WebSockets use the same host with `ws`/`wss` |
 | `timeout` | 30 s | Per HTTP call, except where a call's own default is longer (below) |
 | `max_retries` / `maxRetries` | 2 | Automatic retries, per §8. `0` turns them off |
 | `user_agent` suffix | none | Appended to `verbex-speech-<lang>/<version>` |

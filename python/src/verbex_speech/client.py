@@ -16,7 +16,7 @@ from .speak import AsyncSpeak, Speak
 class VerbexSpeech:
     """Client for the Verbex Speech API.
 
-    >>> client = VerbexSpeech(api_key="vbx_...", base_url="https://speech-api-stage.verbex.ai")
+    >>> client = VerbexSpeech(api_key="vbx_...", base_url="https://jp-speech-api.verbex.ai")
     >>> job = client.listen.transcribe("call.wav", model="verbex_jp_stt_x1", language="ja")
     """
 
@@ -59,7 +59,7 @@ class VerbexSpeech:
 class AsyncVerbexSpeech:
     """Asynchronous client for the Verbex Speech API.
 
-    >>> async with AsyncVerbexSpeech(api_key="vbx_...", base_url="https://speech-api-stage.verbex.ai") as client:
+    >>> async with AsyncVerbexSpeech(api_key="vbx_...", base_url="https://jp-speech-api.verbex.ai") as client:
     ...     job = await client.listen.transcribe("call.wav", model="verbex_jp_stt_x1", language="ja")
     """
 

@@ -27,7 +27,8 @@ README says otherwise.
    mobile app. For voice agents in the browser, Verbex has a different package; do not use this
    SDK there.
 2. **Configuration from the environment.** The client reads `VERBEX_API_KEY` and
-   `VERBEX_BASE_URL`. There is no built-in base URL. Never hard-code the key in source.
+   `VERBEX_BASE_URL`. Without `VERBEX_BASE_URL` it calls the production API,
+   `https://jp-speech-api.verbex.ai`; set it only for another address, such as stage. Never hard-code the key in source.
 3. **One call for any file size.** `transcribe` sends a file of up to 1 MiB in the request and a
    larger one (up to 100 MiB) through the upload flow. Over 100 MiB is refused before anything is
    sent. Audio already in storage: pass an https `url` instead of a file. Never both.

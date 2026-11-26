@@ -51,14 +51,16 @@ import { VerbexSpeech } from "@verbex.ai/verbex-speech-sdk";
 
 const client = new VerbexSpeech({
   apiKey: process.env.VERBEX_API_KEY, // default: env VERBEX_API_KEY; must start with vbx_
-  baseUrl: process.env.VERBEX_BASE_URL, // default: env VERBEX_BASE_URL; required, no built-in default
+  baseUrl: process.env.VERBEX_BASE_URL, // default: env VERBEX_BASE_URL, else https://jp-speech-api.verbex.ai
   timeoutMs: 30_000, // per HTTP call (submit has 330 s, speak 360 s)
   maxRetries: 2, // automatic retries; 0 turns them off
   userAgent: "my-app/1.0", // optional suffix
 });
 ```
 
-A missing or malformed key or base URL throws `ConfigurationError` at construction. The key is
+A missing or malformed key, or a malformed base URL, throws `ConfigurationError` at construction.
+With no `baseUrl` and no `VERBEX_BASE_URL`, the client calls the production API,
+`https://jp-speech-api.verbex.ai`. The key is
 never logged, never put in an error message, and never sent anywhere but the base URL.
 WebSockets use the same host with `ws`/`wss`.
 

@@ -16,7 +16,7 @@ synchronous; the client is thread-safe, so build one and share it.
 ```java
 import ai.verbex.speech.sdk.VerbexSpeech;
 
-VerbexSpeech client = VerbexSpeech.builder().build();   // reads VERBEX_API_KEY and VERBEX_BASE_URL
+VerbexSpeech client = VerbexSpeech.builder().build();   // reads VERBEX_API_KEY, and VERBEX_BASE_URL if set
 // or .apiKey(...).baseUrl(...).timeout(Duration.ofSeconds(30)).maxRetries(2)
 ```
 

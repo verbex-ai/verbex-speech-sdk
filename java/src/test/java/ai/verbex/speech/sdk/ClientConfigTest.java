@@ -28,9 +28,13 @@ class ClientConfigTest {
     }
 
     @Test
-    void aMissingOrInvalidBaseUrlIsAConfigurationError() {
-        assertThrows(ConfigurationException.class,
-                () -> VerbexSpeech.builder().apiKey(KEY).env(n -> null).build());
+    void aMissingBaseUrlDefaultsToProduction() {
+        VerbexSpeech c = VerbexSpeech.builder().apiKey(KEY).env(n -> null).build();
+        assertEquals("https://jp-speech-api.verbex.ai", c.baseUrl());
+    }
+
+    @Test
+    void anInvalidBaseUrlIsAConfigurationError() {
         assertThrows(ConfigurationException.class,
                 () -> VerbexSpeech.builder().apiKey(KEY).baseUrl("ftp://api.example").env(n -> null).build());
         assertThrows(ConfigurationException.class,

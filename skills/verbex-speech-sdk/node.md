@@ -11,7 +11,7 @@ ESM with TypeScript declarations. Node.js 18 or later. Server side only.
 ```js
 import { VerbexSpeech } from "@verbex.ai/verbex-speech-sdk";
 
-const client = new VerbexSpeech(); // reads VERBEX_API_KEY and VERBEX_BASE_URL
+const client = new VerbexSpeech(); // reads VERBEX_API_KEY, and VERBEX_BASE_URL if set
 // or new VerbexSpeech({ apiKey, baseUrl, timeoutMs: 30_000, maxRetries: 2 })
 ```
 

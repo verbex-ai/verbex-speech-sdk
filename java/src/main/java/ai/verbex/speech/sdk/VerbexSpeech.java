@@ -27,11 +27,14 @@ import java.util.function.LongSupplier;
  *
  * <pre>{@code
  * VerbexSpeech client = VerbexSpeech.builder()          // or env VERBEX_API_KEY / VERBEX_BASE_URL
- *         .apiKey("vbx_...").baseUrl("https://speech-api-stage.verbex.ai").build();
+ *         .apiKey("vbx_...").build();                     // base URL: DEFAULT_BASE_URL unless set
  * Job job = client.listen().transcribe(TranscribeRequest.file(Path.of("call.wav"), "verbex_jp_stt_x1", "ja"));
  * }</pre>
  */
 public final class VerbexSpeech {
+    /** The production API, used when neither {@code baseUrl(...)} nor {@code VERBEX_BASE_URL} is given. */
+    public static final String DEFAULT_BASE_URL = "https://jp-speech-api.verbex.ai";
+
     /** The SDK version, from the build. */
     public static final String VERSION = loadVersion();
     static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
@@ -117,7 +120,7 @@ public final class VerbexSpeech {
             return this;
         }
 
-        /** The API's base URL; defaults to env {@code VERBEX_BASE_URL}. No built-in default. */
+        /** The API's base URL; defaults to env {@code VERBEX_BASE_URL}, else {@link #DEFAULT_BASE_URL}. */
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
             return this;
@@ -166,9 +169,13 @@ public final class VerbexSpeech {
             if (!key.startsWith("vbx_")) {
                 throw new ConfigurationException("The API key is not valid: Verbex API keys start with vbx_.");
             }
-            String url = baseUrl != null ? baseUrl : env.apply("VERBEX_BASE_URL");
-            if (url == null || url.isBlank()) {
-                throw new ConfigurationException("No base URL: pass baseUrl(...) or set VERBEX_BASE_URL.");
+            String url = baseUrl;
+            if (url == null) {
+                String fromEnv = env.apply("VERBEX_BASE_URL");
+                url = fromEnv == null || fromEnv.isBlank() ? DEFAULT_BASE_URL : fromEnv;
+            }
+            if (url.isBlank()) {
+                throw new ConfigurationException("The base URL is empty: pass an http(s) URL, or leave it out.");
             }
             url = url.trim();
             while (url.endsWith("/")) {
@@ -178,7 +185,7 @@ public final class VerbexSpeech {
                 URI uri = new URI(url);
                 if (!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) || uri.getHost() == null
                         || uri.getRawQuery() != null || uri.getRawFragment() != null) {
-                    throw new ConfigurationException("The base URL must be an http(s) URL with a host, such as https://speech-api-stage.verbex.ai.");
+                    throw new ConfigurationException("The base URL must be an http(s) URL with a host, such as " + DEFAULT_BASE_URL + ".");
                 }
             } catch (URISyntaxException e) {
                 throw new ConfigurationException("The base URL is not a valid URL.");

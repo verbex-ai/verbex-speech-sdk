@@ -38,16 +38,20 @@ class Config:
         return f"Config(base_url={self.base_url!r}, timeout={self.timeout!r}, max_retries={self.max_retries!r})"
 
 
+DEFAULT_BASE_URL = "https://jp-speech-api.verbex.ai"
+"""The production API, used when neither ``base_url`` nor ``VERBEX_BASE_URL`` is given."""
+
+
 def resolve_config(api_key: Optional[str], base_url: Optional[str], timeout: float, max_retries: int,
                    user_agent: Optional[str]) -> Config:
     key = api_key if api_key is not None else os.environ.get("VERBEX_API_KEY")
-    url = base_url if base_url is not None else os.environ.get("VERBEX_BASE_URL")
+    url = base_url if base_url is not None else os.environ.get("VERBEX_BASE_URL") or DEFAULT_BASE_URL
     if not key:
         raise ConfigurationError("No API key: pass api_key or set VERBEX_API_KEY.")
     if not key.startswith("vbx_"):
         raise ConfigurationError("The API key is not a Verbex key: it must start with vbx_.")
     if not url:
-        raise ConfigurationError("No base URL: pass base_url or set VERBEX_BASE_URL.")
+        raise ConfigurationError("The base URL is empty: pass an http or https address, or leave it out.")
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.netloc:
         raise ConfigurationError("The base URL must be an http or https address.")
