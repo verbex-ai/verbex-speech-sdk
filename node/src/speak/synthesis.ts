@@ -3,6 +3,7 @@
  */
 import { idempotencyHeaders, isReplayed } from "../transport/common.js";
 import type { HttpClient, OpenResponse, RequestOptions } from "../transport/http.js";
+import { ValidationError } from "../errors.js";
 import { SpeakError } from "./errors.js";
 
 /** The gateway's limit for `POST /v1/speak`. */
@@ -57,11 +58,14 @@ export async function synthesize(http: HttpClient, params: SynthesizeParams): Pr
 
 /** Speaks one utterance and yields the audio chunks as they arrive. */
 export async function synthesizeStream(http: HttpClient, params: SynthesizeParams): Promise<SpeechStream> {
+  // Checked here as well as by the type: plain JavaScript callers get no compile-time check.
+  const format = params.format ?? "pcm";
+  if (format !== "pcm" && format !== "wav") throw new ValidationError("format must be pcm or wav.");
   // One key for every attempt of this call, so a retry is not billed a second time.
   const headers = idempotencyHeaders(params.idempotencyKey);
   const body: Record<string, unknown> = { ...(params.settings ?? {}), model: params.model, voice: params.voice, text: params.text };
   if (params.requestId !== undefined) body.request_id = params.requestId;
-  const query: Array<[string, string]> = [["format", params.format ?? "pcm"]];
+  const query: Array<[string, string]> = [["format", format]];
   for (const t of params.tags ?? []) query.push(["tag", t]);
   const open = await http.open({
     method: "POST",

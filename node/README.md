@@ -256,7 +256,7 @@ Every error is a `VerbexError`.
 | Type | When |
 |---|---|
 | `ConfigurationError` | Missing or invalid key or base URL |
-| `ValidationError` | Refused locally, nothing sent (file over 100 MiB, stream without `size`, a bad `idempotencyKey` on a submit or a speak, `send` after `finish`, overlapping `say`). `code` is `validation_failed`, or `audio_too_large` for a file over 100 MiB |
+| `ValidationError` | Refused locally, nothing sent (file over 100 MiB, stream without `size`, a bad `idempotencyKey` on a submit or a speak, a `format` other than `pcm` or `wav`, `send` after `finish`, overlapping `say`). `code` is `validation_failed`, or `audio_too_large` for a file over 100 MiB |
 | `ApiError` | An HTTP error: `status`, `code`, `message`, `requestId`, `fields`, `retryAfter` |
 | `BadRequestError` | 400, 405, 406, 409, 413, 415, 422 |
 | `AuthenticationError` | 401 |

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { SpeakError } from "../../src/index.js";
+import { SpeakError, ValidationError } from "../../src/index.js";
 import { apiError, delay, json, startHttp, testClient, type TestServer } from "../helpers.js";
 
 let server: TestServer | undefined;
@@ -51,6 +51,20 @@ describe("speak.synthesize", () => {
     expect(server.requests[0].query.get("format")).toBe("wav");
     expect(out.contentType).toBe("audio/wav");
     expect(out.requestId).toBe("gen");
+  });
+
+  it("refuses a format other than pcm or wav before sending anything", async () => {
+    server = await startHttp((_req, res) => (res.writeHead(200, PCM_HEADERS), res.end(Buffer.alloc(2))));
+    const client = testClient(server.url);
+    for (const format of ["mp3", "WAV", ""]) {
+      await expect(
+        client.speak.synthesize({ model: "m", voice: "v", text: "t", format: format as "wav" }),
+      ).rejects.toThrow(new ValidationError("format must be pcm or wav."));
+      await expect(
+        client.speak.synthesizeStream({ model: "m", voice: "v", text: "t", format: format as "wav" }),
+      ).rejects.toThrow(ValidationError);
+    }
+    expect(server.requests).toHaveLength(0);
   });
 
   it("raises SpeakError, never short audio, when the body ends with a transport error", async () => {
