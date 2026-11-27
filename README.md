@@ -156,9 +156,10 @@ curl -sS -X POST "$API/v1/listen" -H "Authorization: Token $VERBEX_API_KEY" \
 curl -sS "$API/v1/listen/<job_id>" -H "Authorization: Token $VERBEX_API_KEY"
 
 # Text-to-speech: the response body is the audio. Take model and voice from /v1/speak/voices.
-curl -sS -X POST "$API/v1/speak" -H "Authorization: Token $VERBEX_API_KEY" \
+# The audio format is a query parameter: wav, or pcm (the default, raw 16 kHz mono s16le).
+curl -sS -X POST "$API/v1/speak?format=wav" -H "Authorization: Token $VERBEX_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model": "<model>", "voice": "<voice>", "text": "こんにちは", "format": "wav"}' \
+  -d '{"model": "<model>", "voice": "<voice>", "text": "こんにちは"}' \
   -o hello.wav
 ```
 

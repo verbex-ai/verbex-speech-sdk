@@ -33,6 +33,7 @@ echo "$JOB" | jq -r '.text // empty'
 
 VOICE=$(echo "$VOICES" | jq -c --arg l "$LANGUAGE" '[.items[] | select(.language == $l)][0]')
 [ "$VOICE" != "null" ] || { echo "no voice for $LANGUAGE" >&2; exit 1; }
-jq -n --argjson v "$VOICE" '{model: $v.model, voice: $v.code, text: "こんにちは", format: "wav"}' |
-  curl -fsS "${AUTH[@]}" -X POST "$API/v1/speak" -H "Content-Type: application/json" --data-binary @- -o hello.wav
+# The audio format is a query parameter, not a body field.
+jq -n --argjson v "$VOICE" '{model: $v.model, voice: $v.code, text: "こんにちは"}' |
+  curl -fsS "${AUTH[@]}" -X POST "$API/v1/speak?format=wav" -H "Content-Type: application/json" --data-binary @- -o hello.wav
 echo "wrote hello.wav"
